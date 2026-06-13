@@ -1,0 +1,126 @@
+{% extends "dashboard/base_dashboard.html" %}
+{% block title %}Płatności — {{ provider.name }}{% endblock %}
+{% block dashboard_content %}
+<h1 class="h4 mb-4">Płatności i subskrypcja</h1>
+
+{% set subscription_status = provider.subscription_status %}
+{% set status_labels = {
+    'trial': 'Okres próbny',
+    'active': 'Aktywna',
+    'past_due': 'Zaległa płatność',
+    'canceled': 'Anulowana',
+    'incomplete': 'Niekompletna'
+} %}
+{% set status_colors = {
+    'trial': 'info',
+    'active': 'success',
+    'past_due': 'danger',
+    'canceled': 'secondary',
+    'incomplete': 'warning'
+} %}
+
+<div class="row g-4">
+    <div class="col-lg-8">
+        <!-- Status subskrypcji -->
+        <div class="card shadow-sm mb-4">
+            <div class="card-header bg-white">
+                <h6 class="mb-0"><i class="bi bi-credit-card"></i> Status subskrypcji</h6>
+            </div>
+            <div class="card-body">
+                <div class="d-flex align-items-center gap-3 mb-3">
+                    <span class="badge bg-{{ status_colors.get(subscription_status, 'secondary') }} fs-6">
+                        {{ status_labels.get(subscription_status, subscription_status) }}
+                    </span>
+                    {% if subscription_status == 'trial' %}
+                        <span class="text-muted small">
+                            Ważny do {{ trial_end }}
+                            {% if trial_days_left > 0 %}
+                                ({{ trial_days_left }} dni)
+                            {% endif %}
+                        </span>
+                    {% endif %}
+                </div>
+
+                {% if subscription_status == 'trial' %}
+                    <div class="alert alert-info py-2 small">
+                        <i class="bi bi-info-circle"></i>
+                        Twój okres próbny jest aktywny do <strong>{{ trial_end }}</strong>.
+                        Po jego zakończeniu subskrypcja wynosi <strong>{{ subscription_price_pln }} zł/mies.</strong>
+                    </div>
+                    <form method="POST" action="/dashboard/subskrypcja/utworz">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-credit-card"></i> Aktywuj subskrypcję ({{ subscription_price_pln }} zł/mies.)
+                        </button>
+                    </form>
+
+                {% elif subscription_status == 'active' %}
+                    <div class="alert alert-success py-2 small">
+                        <i class="bi bi-check-circle"></i> Twoja subskrypcja jest aktywna.
+                    </div>
+                    <form method="POST" action="/dashboard/subskrypcja/anuluj"
+                          onsubmit="return confirm('Czy na pewno chcesz anulować subskrypcję? Będzie aktywna do końca okresu rozliczeniowego.')">
+                        <button type="submit" class="btn btn-outline-danger btn-sm">
+                            <i class="bi bi-x-circle"></i> Anuluj subskrypcję
+                        </button>
+                    </form>
+
+                {% elif subscription_status == 'past_due' %}
+                    <div class="alert alert-danger py-2 small">
+                        <i class="bi bi-exclamation-triangle"></i>
+                        Wystąpił problem z płatnością. Twoja subskrypcja jest zaległa.
+                        <a href="/dashboard/subskrypcja/utworz" class="alert-link">Zaktualizuj metodę płatności</a>.
+                    </div>
+                    <form method="POST" action="/dashboard/subskrypcja/utworz">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-credit-card"></i> Opłać subskrypcję
+                        </button>
+                    </form>
+
+                {% elif subscription_status == 'canceled' %}
+                    <div class="alert alert-warning py-2 small">
+                        <i class="bi bi-info-circle"></i>
+                        Twoja subskrypcja została anulowana. Rezerwacje są zablokowane.
+                        Aktywuj subskrypcję ponownie, aby wznowić przyjmowanie rezerwacji.
+                    </div>
+                    <form method="POST" action="/dashboard/subskrypcja/utworz">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-credit-card"></i> Wznów subskrypcję ({{ subscription_price_pln }} zł/mies.)
+                        </button>
+                    </form>
+                {% endif %}
+            </div>
+        </div>
+
+        {% if not stripe_configured %}
+            <div class="alert alert-warning py-2 small">
+                <i class="bi bi-exclamation-triangle"></i>
+                <strong>Tryb demonstracyjny:</strong> Stripe nie jest skonfigurowane.
+                Subskrypcje i płatności działają w trybie symulacji.
+                Skonfiguruj zmienne <code>STRIPE_SECRET_KEY</code> i <code>SUBSCRIPTION_PRICE_ID</code> w pliku .env,
+                aby włączyć rzeczywiste płatności.
+            </div>
+        {% endif %}
+    </div>
+
+    <!-- Podsumowanie -->
+    <div class="col-lg-4">
+        <div class="card shadow-sm">
+            <div class="card-header bg-white">
+                <h6 class="mb-0"><i class="bi bi-info-circle"></i> Podsumowanie</h6>
+            </div>
+            <div class="card-body">
+                <dl class="small mb-0">
+                    <dt>Status</dt>
+                    <dd>{{ status_labels.get(subscription_status, subscription_status) }}</dd>
+                    <dt>Okres próbny</dt>
+                    <dd>{{ trial_end }}</dd>
+                    <dt>Cena subskrypcji</dt>
+                    <dd>{{ subscription_price_pln }} zł / miesiąc</dd>
+                    <dt>E-mail</dt>
+                    <dd class="text-break">{{ provider.email }}</dd>
+                </dl>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

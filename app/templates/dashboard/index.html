@@ -1,0 +1,95 @@
+{% extends "dashboard/base_dashboard.html" %}
+{% block title %}Dashboard — {{ provider.name }}{% endblock %}
+{% block dashboard_content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1 class="h4 mb-0">Witaj, {{ provider.name }}</h1>
+    <a href="/dashboard/ustawienia" class="btn btn-outline-primary btn-sm">
+        <i class="bi bi-gear"></i> Ustawienia
+    </a>
+</div>
+
+<!-- Statystyki -->
+<div class="row g-3 mb-4">
+    <div class="col-6 col-md-3">
+        <div class="card border-0 bg-primary bg-opacity-10 text-center p-3 h-100">
+            <div class="fw-bold fs-4">{{ today_bookings|length }}</div>
+            <div class="small text-muted">Rezerwacje dzisiaj</div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="card border-0 bg-success bg-opacity-10 text-center p-3 h-100">
+            <div class="fw-bold fs-4">{{ upcoming_count }}</div>
+            <div class="small text-muted">Nadchodzące</div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="card border-0 bg-info bg-opacity-10 text-center p-3 h-100">
+            <div class="fw-bold fs-4">{{ completed_bookings }}</div>
+            <div class="small text-muted">Zrealizowane</div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="card border-0 bg-warning bg-opacity-10 text-center p-3 h-100">
+            <div class="fw-bold fs-4">{{ total_bookings }}</div>
+            <div class="small text-muted">Wszystkie</div>
+        </div>
+    </div>
+</div>
+
+<!-- Publiczny link -->
+<div class="card border-0 bg-light mb-4">
+    <div class="card-body d-flex flex-wrap align-items-center justify-content-between gap-2">
+        <div>
+            <strong><i class="bi bi-link-45deg"></i> Twój publiczny link:</strong>
+            <a href="/{{ provider.slug }}" target="_blank" class="ms-2">{{ site_url }}/{{ provider.slug }}</a>
+        </div>
+        <a href="/dashboard/podglad" class="btn btn-primary btn-sm">
+            <i class="bi bi-eye"></i> Podgląd
+        </a>
+    </div>
+</div>
+
+<!-- Rezerwacje na dziś -->
+{% if today_bookings %}
+    <h2 class="h5 mb-3">Rezerwacje na dziś ({{ today_bookings|length }})</h2>
+    <div class="list-group mb-4">
+        {% for b in today_bookings %}
+            <div class="list-group-item list-group-item-action d-flex flex-wrap align-items-center gap-2">
+                <span class="badge bg-primary fs-6">{{ b.booking_time.strftime('%H:%M') }}</span>
+                <span class="fw-medium">{{ b.client_name }} {{ b.client_surname }}</span>
+                <span class="text-muted small">{{ b.client_phone }}</span>
+                <span class="text-muted small">{{ b.duration }} min</span>
+                <span class="ms-auto">
+                    {% if b.paid %}
+                        <span class="badge bg-success">Opłacone</span>
+                    {% endif %}
+                </span>
+            </div>
+        {% endfor %}
+    </div>
+{% endif %}
+
+<!-- Nadchodzące rezerwacje -->
+{% if future_bookings %}
+    <h2 class="h5 mb-3">Nadchodzące rezerwacje</h2>
+    <div class="list-group mb-4">
+        {% for b in future_bookings %}
+            <div class="list-group-item list-group-item-action d-flex flex-wrap align-items-center gap-2">
+                <span class="badge bg-primary">{{ b.booking_date.strftime('%d.%m') }}</span>
+                <span class="badge bg-secondary">{{ b.booking_time.strftime('%H:%M') }}</span>
+                <span class="fw-medium">{{ b.client_name }} {{ b.client_surname }}</span>
+                <span class="text-muted small">{{ b.client_phone }}</span>
+                <span class="text-muted small">{{ b.duration }} min</span>
+            </div>
+        {% endfor %}
+    </div>
+{% endif %}
+
+{% if not today_bookings and not future_bookings %}
+    <div class="text-center py-5 text-muted">
+        <i class="bi bi-calendar-plus display-4"></i>
+        <p class="mt-2">Brak nadchodzących rezerwacji.</p>
+        <p class="small">Udostępnij swój link klientom, aby mogli umawiać wizyty online.</p>
+    </div>
+{% endif %}
+{% endblock %}

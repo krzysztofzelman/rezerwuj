@@ -1,0 +1,192 @@
+{% extends "dashboard/base_dashboard.html" %}
+{% block title %}Ustawienia — {{ provider.name }}{% endblock %}
+{% block dashboard_content %}
+<h1 class="h4 mb-4">Ustawienia</h1>
+
+<div class="row g-4">
+    <!-- Profil -->
+    <div class="col-lg-6">
+        <div class="card shadow-sm h-100">
+            <div class="card-header bg-white">
+                <h6 class="mb-0"><i class="bi bi-person"></i> Profil</h6>
+            </div>
+            <div class="card-body">
+                <form method="POST" action="/dashboard/ustawienia">
+                    <div class="mb-3">
+                        <label class="form-label small">Imię i nazwisko</label>
+                        <input type="text" class="form-control" name="name" value="{{ provider.name }}" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small">Nazwa firmy <span class="text-muted">(opcjonalnie)</span></label>
+                        <input type="text" class="form-control" name="company_name" value="{{ provider.company_name or '' }}" placeholder="Salon Urody Jan">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small">Telefon kontaktowy</label>
+                        <input type="tel" class="form-control" name="phone" value="{{ provider.phone or '' }}" placeholder="+48 123 456 789">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small">Domyślny czas usługi (minuty)</label>
+                        <select class="form-select" name="service_duration">
+                            {% for opt in [15, 30, 45, 60, 75, 90, 105, 120, 150, 180] %}
+                                <option value="{{ opt }}" {% if provider.service_duration == opt %}selected{% endif %}>{{ opt }} min</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <hr>
+                    <h6 class="mb-3">Zaliczka / Depozyt</h6>
+                    <div class="form-check mb-2">
+                        <input class="form-check-input" type="checkbox" name="require_deposit" id="require_deposit"
+                               {% if provider.require_deposit %}checked{% endif %}>
+                        <label class="form-check-label small" for="require_deposit">
+                            Wymagaj zaliczki przy rezerwacji
+                        </label>
+                    </div>
+                    <div class="mb-3" id="deposit_amount_group" style="{% if not provider.require_deposit %}display:none{% endif %}">
+                        <label class="form-label small">Kwota zaliczki (zł)</label>
+                        <input type="number" class="form-control" name="deposit_amount" step="0.01" min="0"
+                               value="{{ (provider.deposit_amount / 100)|round(2) if provider.deposit_amount else '' }}"
+                               placeholder="0.00">
+                    </div>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-check-lg"></i> Zapisz
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Godziny pracy -->
+    <div class="col-lg-6">
+        <div class="card shadow-sm h-100">
+            <div class="card-header bg-white">
+                <h6 class="mb-0"><i class="bi bi-clock"></i> Godziny pracy</h6>
+            </div>
+            <div class="card-body">
+                <form method="POST" action="/dashboard/godziny-pracy">
+                    {% set days = ['Poniedziałek', 'Wtorek', 'Środa', 'Czwartek', 'Piątek', 'Sobota', 'Niedziela'] %}
+                    {% for day_idx in range(7) %}
+                        {% set wh = provider.working_hours|selectattr('day_of_week', 'equalto', day_idx)|first %}
+                        <div class="row g-2 align-items-center mb-2 pb-2 border-bottom">
+                            <div class="col-md-2">
+                                <div class="form-check">
+                                    <input class="form-check-input day-toggle" type="checkbox" name="day_{{ day_idx }}_is_working"
+                                           id="day_{{ day_idx }}" data-day="{{ day_idx }}"
+                                           {% if wh and wh.is_working %}checked{% elif not wh %}checked{% endif %}>
+                                    <label class="form-check-label small fw-medium" for="day_{{ day_idx }}">{{ days[day_idx] }}</label>
+                                </div>
+                            </div>
+                            <div class="col-5 col-md-3">
+                                <input type="time" class="form-control form-control-sm day-time" name="day_{{ day_idx }}_start_time"
+                                       value="{{ wh.start_time.strftime('%H:%M') if wh and wh.start_time else '09:00' }}"
+                                       {% if wh and not wh.is_working %}disabled{% endif %}>
+                            </div>
+                            <div class="col-auto small text-muted">—</div>
+                            <div class="col-5 col-md-3">
+                                <input type="time" class="form-control form-control-sm day-time" name="day_{{ day_idx }}_end_time"
+                                       value="{{ wh.end_time.strftime('%H:%M') if wh and wh.end_time else '17:00' }}"
+                                       {% if wh and not wh.is_working %}disabled{% endif %}>
+                            </div>
+                            <div class="col-12 mt-1">
+                                <div class="row g-1">
+                                    <div class="col-auto">
+                                        <span class="small text-muted">Przerwa:</span>
+                                    </div>
+                                    <div class="col-4 col-md-3">
+                                        <input type="time" class="form-control form-control-sm day-time" name="day_{{ day_idx }}_break_start"
+                                               value="{{ wh.break_start.strftime('%H:%M') if wh and wh.break_start else '' }}"
+                                               {% if wh and not wh.is_working %}disabled{% endif %}>
+                                    </div>
+                                    <div class="col-auto small text-muted">—</div>
+                                    <div class="col-4 col-md-3">
+                                        <input type="time" class="form-control form-control-sm day-time" name="day_{{ day_idx }}_break_end"
+                                               value="{{ wh.break_end.strftime('%H:%M') if wh and wh.break_end else '' }}"
+                                               {% if wh and not wh.is_working %}disabled{% endif %}>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    {% endfor %}
+                    <button type="submit" class="btn btn-primary mt-2">
+                        <i class="bi bi-check-lg"></i> Zapisz godziny pracy
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Blokowanie terminów -->
+    <div class="col-lg-6">
+        <div class="card shadow-sm">
+            <div class="card-header bg-white">
+                <h6 class="mb-0"><i class="bi bi-lock"></i> Zablokowane terminy</h6>
+            </div>
+            <div class="card-body">
+                <form method="POST" action="/dashboard/blokuj" class="row g-2 mb-3">
+                    <div class="col-6">
+                        <label class="form-label small">Data</label>
+                        <input type="date" class="form-control form-control-sm" name="block_date" required
+                               min="{{ today.strftime('%Y-%m-%d') }}">
+                    </div>
+                    <div class="col-3">
+                        <label class="form-label small">Od</label>
+                        <input type="time" class="form-control form-control-sm" name="start_time" value="09:00" required>
+                    </div>
+                    <div class="col-3">
+                        <label class="form-label small">Do</label>
+                        <input type="time" class="form-control form-control-sm" name="end_time" value="17:00" required>
+                    </div>
+                    <div class="col-12">
+                        <input type="text" class="form-control form-control-sm" name="reason" placeholder="Powód (np. urlop)">
+                    </div>
+                    <div class="col-12">
+                        <button type="submit" class="btn btn-outline-danger btn-sm">
+                            <i class="bi bi-lock"></i> Zablokuj termin
+                        </button>
+                    </div>
+                </form>
+
+                {% set blocked_slots = provider.blocked_slots|selectattr('block_date', 'ge', today)|list %}
+                {% if blocked_slots %}
+                    <hr>
+                    <h6 class="small text-muted mb-2">Aktywne blokady:</h6>
+                    {% for block in blocked_slots %}
+                        <div class="d-flex justify-content-between align-items-center mb-1 p-2 bg-light rounded">
+                            <div>
+                                <span class="small fw-medium">{{ block.block_date.strftime('%d.%m.%Y') }}</span>
+                                <span class="small text-muted">{{ block.start_time.strftime('%H:%M') }}–{{ block.end_time.strftime('%H:%M') }}</span>
+                                {% if block.reason %}
+                                    <span class="small text-muted">({{ block.reason }})</span>
+                                {% endif %}
+                            </div>
+                            <form method="POST" action="/dashboard/odblokuj/{{ block.id }}">
+                                <button class="btn btn-sm btn-outline-secondary" title="Usuń blokadę">
+                                    <i class="bi bi-unlock"></i>
+                                </button>
+                            </form>
+                        </div>
+                    {% endfor %}
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+// Pokazywanie/ukrywanie kwoty zaliczki
+document.getElementById('require_deposit')?.addEventListener('change', function() {
+    document.getElementById('deposit_amount_group').style.display = this.checked ? 'block' : 'none';
+});
+
+// Włączanie/wyłączanie pól czasu przy odznaczeniu dnia
+document.querySelectorAll('.day-toggle').forEach(cb => {
+    cb.addEventListener('change', function() {
+        const day = this.dataset.day;
+        document.querySelectorAll(`[name^="day_${day}_"]`).forEach(el => {
+            if (el !== this) el.disabled = !this.checked;
+        });
+    });
+});
+</script>
+{% endblock %}

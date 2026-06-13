@@ -1,0 +1,77 @@
+{% extends "dashboard/base_dashboard.html" %}
+{% block title %}Rezerwacje — {{ provider.name }}{% endblock %}
+{% block dashboard_content %}
+<h1 class="h4 mb-4">Wszystkie rezerwacje</h1>
+
+{% if bookings %}
+    <div class="table-responsive">
+        <table class="table table-hover align-middle">
+            <thead class="table-light">
+                <tr>
+                    <th>Data</th>
+                    <th>Godzina</th>
+                    <th>Klient</th>
+                    <th>Telefon</th>
+                    <th>Czas</th>
+                    <th>Status</th>
+                    <th>Płatność</th>
+                    <th>Akcje</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for b in bookings %}
+                    <tr class="{% if b.booking_date < today and b.status == 'confirmed' %}table-secondary{% endif %}">
+                        <td>{{ b.booking_date.strftime('%d.%m.%Y') }}</td>
+                        <td>{{ b.booking_time.strftime('%H:%M') }}</td>
+                        <td>
+                            <strong>{{ b.client_name }} {{ b.client_surname }}</strong>
+                            {% if b.client_email %}
+                                <br><small class="text-muted">{{ b.client_email }}</small>
+                            {% endif %}
+                        </td>
+                        <td>{{ b.client_phone }}</td>
+                        <td>{{ b.duration }} min</td>
+                        <td>
+                            {% if b.status == 'confirmed' %}
+                                <span class="badge bg-success">Potwierdzona</span>
+                            {% elif b.status == 'cancelled' %}
+                                <span class="badge bg-danger">Anulowana</span>
+                            {% elif b.status == 'completed' %}
+                                <span class="badge bg-secondary">Zakończona</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if b.paid %}
+                                <span class="badge bg-info">Opłacone</span>
+                            {% else %}
+                                <span class="text-muted small">—</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if b.status == 'confirmed' %}
+                                <form method="POST" action="/dashboard/rezerwacje/{{ b.id }}/zakoncz" class="d-inline">
+                                    <button class="btn btn-sm btn-outline-success" title="Oznacz jako zakończoną">
+                                        <i class="bi bi-check-lg"></i>
+                                    </button>
+                                </form>
+                                <form method="POST" action="/dashboard/rezerwacje/{{ b.id }}/anuluj" class="d-inline"
+                                      onsubmit="return confirm('Anulować rezerwację {{ b.client_name }} {{ b.client_surname }} na {{ b.booking_date.strftime('%d.%m') }} godz. {{ b.booking_time.strftime('%H:%M') }}?')">
+                                    <button class="btn btn-sm btn-outline-danger" title="Anuluj rezerwację">
+                                        <i class="bi bi-x-lg"></i>
+                                    </button>
+                                </form>
+                            {% endif %}
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+{% else %}
+    <div class="text-center py-5 text-muted">
+        <i class="bi bi-calendar-plus display-4"></i>
+        <p class="mt-2">Brak rezerwacji.</p>
+        <p class="small">Udostępnij swój link klientom, aby zaczęły się pojawiać.</p>
+    </div>
+{% endif %}
+{% endblock %}

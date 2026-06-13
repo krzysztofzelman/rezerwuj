@@ -1,0 +1,134 @@
+/* === Rezerwuj — Główny arkusz stylów === */
+
+/* Reset i baza */
+body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    background: #f8f9fa;
+    min-height: 100vh;
+}
+
+/* Flatpickr — kalendarz rezerwacji */
+#calendar {
+    max-width: 100%;
+}
+
+.flatpickr-calendar {
+    box-shadow: none !important;
+    border: 1px solid #dee2e6 !important;
+    border-radius: 8px !important;
+    width: 100% !important;
+    max-width: 350px;
+}
+
+.flatpickr-day.disabled {
+    opacity: 0.3 !important;
+    cursor: not-allowed !important;
+}
+
+.flatpickr-day.available {
+    background: #d1e7dd !important;
+    border-color: #badbcc !important;
+    color: #0f5132 !important;
+    font-weight: 600;
+    cursor: pointer !important;
+}
+
+.flatpickr-day.available:hover {
+    background: #a3cfbb !important;
+}
+
+.flatpickr-day.today {
+    border-color: #0d6efd !important;
+}
+
+.flatpickr-day.selected {
+    background: #0d6efd !important;
+    border-color: #0d6efd !important;
+    color: #fff !important;
+}
+
+/* Sloty czasowe */
+.slot-btn {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+    background: #fff;
+    color: #212529;
+    font-size: 0.95rem;
+    transition: all 0.15s ease;
+    cursor: pointer;
+}
+
+.slot-btn:hover {
+    border-color: #0d6efd;
+    background: #f0f5ff;
+    color: #0d6efd;
+}
+
+.slot-btn.selected {
+    border-color: #0d6efd;
+    background: #0d6efd;
+    color: #fff;
+}
+
+.slot-btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+/* Responsywność — małe ekrany */
+@media (max-width: 767px) {
+    #calendar {
+        margin-bottom: 1rem;
+    }
+
+    .flatpickr-calendar {
+        max-width: 100%;
+    }
+
+    .card-body {
+        padding: 1rem !important;
+    }
+}
+
+/* Dashboard — karty */
+.card {
+    border-radius: 12px;
+    border: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+.card-header {
+    border-radius: 12px 12px 0 0 !important;
+    font-weight: 600;
+}
+
+/* Przycisk kopiowania */
+#public-url {
+    font-size: 1.1rem;
+    letter-spacing: 0.3px;
+}
+
+/* Anulacja zagnieżdżonych formularzy */
+form.d-inline {
+    display: inline;
+}
+
+/* Wyszarzenie przeszłych rezerwacji */
+.table-secondary td {
+    font-style: italic;
+}
+
+/* Lepszy wygląd inputów na telefonie */
+@media (max-width: 575px) {
+    input, select, .btn {
+        font-size: 16px !important; /* Zapobiega zoomowaniu iOS */
+    }
+}
+
+/* Loader / spinner */
+.spinner-border-sm {
+    width: 1rem;
+    height: 1rem;
+    border-width: 0.15em;
+}
