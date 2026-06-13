@@ -1,3 +1,4 @@
+import datetime
 import logging
 from contextlib import asynccontextmanager
 
@@ -12,7 +13,7 @@ from app.database import engine, Base, get_db, SessionLocal
 from app.models import Provider
 from app.auth import decode_access_token
 from app.payments import handle_stripe_webhook, process_subscription_event, MOCK_MODE
-from app.routers import auth_router, public_router, dashboard_router
+from app.routers import auth_router, public_router, dashboard_router, admin_router
 
 # === Logowanie ===
 logging.basicConfig(
@@ -39,8 +40,46 @@ async def lifespan(app: FastAPI):
     else:
         logger.info("💳 Stripe: skonfigurowany")
 
+    # Seed konta admina
+    _seed_admin()
+
     yield
     logger.info("👋 Rezerwuj SaaS zatrzymany")
+
+
+def _seed_admin():
+    """Tworzy konto admina jeśli nie istnieje."""
+    from app.config import ADMIN_EMAIL, ADMIN_PASSWORD
+    from app.auth import hash_password
+
+    db = SessionLocal()
+    try:
+        admin = db.query(Provider).filter(Provider.email == ADMIN_EMAIL).first()
+        if not admin:
+            admin = Provider(
+                email=ADMIN_EMAIL,
+                password_hash=hash_password(ADMIN_PASSWORD),
+                name="Administrator",
+                slug="admin",
+                subscription_status="active",
+                is_active=True,
+                is_admin=True,
+                trial_start=datetime.date.today(),
+                trial_end=datetime.date.today() + datetime.timedelta(days=365),
+            )
+            db.add(admin)
+            db.commit()
+            logger.info(f"✅ Konto admina utworzone: {ADMIN_EMAIL}")
+        elif not admin.is_admin:
+            admin.is_admin = True
+            db.commit()
+            logger.info(f"✅ Uprawnienia admina nadane: {ADMIN_EMAIL}")
+        else:
+            logger.info(f"✅ Konto admina istnieje: {ADMIN_EMAIL}")
+    except Exception as e:
+        logger.error(f"❌ Błąd podczas tworzenia konta admina: {e}")
+    finally:
+        db.close()
 
 
 app = FastAPI(
@@ -62,6 +101,9 @@ app.include_router(dashboard_router.router)
 # Router publiczny
 app.include_router(public_router.router)
 
+# Router admina
+app.include_router(admin_router.router)
+
 
 # === Middleware: Auth przez cookie dla dashboardu ===
 @app.middleware("http")
@@ -69,9 +111,9 @@ async def cookie_auth_middleware(request: Request, call_next):
     """Sprawdza ciasteczko access_token i ustawia request.state.provider."""
     request.state.provider = None
 
-    # Tylko dla ścieżek dashboardu
+    # Tylko dla ścieżek dashboardu i admina
     path = request.url.path
-    if path.startswith("/dashboard") or path.startswith("/api/dashboard"):
+    if path.startswith("/dashboard") or path.startswith("/api/dashboard") or path.startswith("/admin"):
         token = None
         auth_cookie = request.cookies.get("access_token")
         if auth_cookie and auth_cookie.startswith("Bearer "):

@@ -1,0 +1,116 @@
+{% extends "admin/base_admin.html" %}
+{% block title %}Panel administracyjny{% endblock %}
+{% block admin_content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1 class="h4 mb-0">Panel administracyjny</h1>
+</div>
+
+<!-- Statystyki -->
+<div class="row g-3 mb-4">
+    <div class="col-md-4">
+        <div class="card border-0 bg-dark bg-opacity-10 text-center p-3 h-100">
+            <div class="fw-bold fs-4">{{ total_users }}</div>
+            <div class="small text-muted">Wszyscy użytkownicy</div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card border-0 bg-success bg-opacity-10 text-center p-3 h-100">
+            <div class="fw-bold fs-4">{{ active_users }}</div>
+            <div class="small text-muted">Aktywni</div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card border-0 bg-info bg-opacity-10 text-center p-3 h-100">
+            <div class="fw-bold fs-4">{{ total_bookings_all }}</div>
+            <div class="small text-muted">Wszystkie rezerwacje</div>
+        </div>
+    </div>
+</div>
+
+<!-- Tabela użytkowników -->
+<div class="card border-0 shadow-sm">
+    <div class="card-header bg-white fw-medium">Użytkownicy</div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>ID</th>
+                        <th>Email</th>
+                        <th>Nazwa</th>
+                        <th>Slug</th>
+                        <th>Subskrypcja</th>
+                        <th>Trial do</th>
+                        <th>Rezerwacje</th>
+                        <th>Status</th>
+                        <th>Admin</th>
+                        <th>Data utworzenia</th>
+                        <th>Akcja</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for u in stats %}
+                    <tr>
+                        <td>{{ u.id }}</td>
+                        <td>{{ u.email }}</td>
+                        <td>{{ u.name }}</td>
+                        <td><code>{{ u.slug }}</code></td>
+                        <td>
+                            {% if u.subscription == 'trial' %}
+                                <span class="badge bg-warning text-dark">trial</span>
+                            {% elif u.subscription == 'active' %}
+                                <span class="badge bg-success">aktywna</span>
+                            {% elif u.subscription == 'canceled' %}
+                                <span class="badge bg-secondary">anulowana</span>
+                            {% elif u.subscription == 'past_due' %}
+                                <span class="badge bg-danger">zaległa</span>
+                            {% else %}
+                                <span class="badge bg-light text-muted">{{ u.subscription }}</span>
+                            {% endif %}
+                        </td>
+                        <td class="small">{{ u.trial_end }}</td>
+                        <td>{{ u.total_bookings }} ({{ u.upcoming_bookings }})</td>
+                        <td>
+                            {% if u.is_active %}
+                                <span class="text-success"><i class="bi bi-check-circle"></i> aktywny</span>
+                            {% else %}
+                                <span class="text-danger"><i class="bi bi-x-circle"></i> zablokowany</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if u.is_admin %}
+                                <span class="badge bg-dark">admin</span>
+                            {% else %}
+                                <span class="text-muted small">—</span>
+                            {% endif %}
+                        </td>
+                        <td class="small">{{ u.created_at }}</td>
+                        <td>
+                            {% if not u.is_admin %}
+                                <form method="post" action="/admin/users/{{ u.id }}/toggle-active" style="display:inline">
+                                    <button type="submit" class="btn btn-sm {% if u.is_active %}btn-outline-danger{% else %}btn-outline-success{% endif %}"
+                                            onclick="return confirm('{% if u.is_active %}Dezaktywować{% else %}Aktywować{% endif %} użytkownika {{ u.email }}?')">
+                                        {% if u.is_active %}
+                                            <i class="bi bi-pause-circle"></i>
+                                        {% else %}
+                                            <i class="bi bi-play-circle"></i>
+                                        {% endif %}
+                                    </button>
+                                </form>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+{% if not stats %}
+    <div class="text-center py-5 text-muted">
+        <i class="bi bi-people display-4"></i>
+        <p class="mt-2">Brak zarejestrowanych użytkowników.</p>
+    </div>
+{% endif %}
+{% endblock %}

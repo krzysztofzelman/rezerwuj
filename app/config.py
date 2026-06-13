@@ -26,5 +26,9 @@ SMS_MOCK = os.getenv("SMS_MOCK", "true").lower() == "true"
 TRIAL_DAYS = int(os.getenv("TRIAL_DAYS", "14"))
 MAX_BOOKING_DAYS_AHEAD = int(os.getenv("MAX_BOOKING_DAYS_AHEAD", "60"))
 
+# === Admin ===
+ADMIN_EMAIL = os.getenv("ADMIN_EMAIL", "admin@rezerwuj.pl")
+ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD", "Admin123!")
+
 # === Stripe Product price (fallback) ===
 STRIPE_CURRENCY = "pln"
