@@ -94,6 +94,7 @@ def migrate():
     # ---- 4. Stwórz schemat ----
     logger.info("Tworzę tabele w PostgreSQL...")
     from app.database import Base
+    import app.models  # noqa: F401 — rejestruje modele w Base.metadata
     Base.metadata.create_all(bind=pg_engine)
 
     # ---- 5. Wyczyść istniejące dane (na wypadek restartu migracji) ----
