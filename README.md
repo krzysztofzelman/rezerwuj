@@ -29,7 +29,7 @@ SaaS do zarządzania rezerwacjami dla małych firm usługowych (fryzjerzy, salon
 | Komponent | Technologia |
 |-----------|-------------|
 | Backend | Python 3.10+ / FastAPI |
-| Baza danych | SQLite (developersko), PostgreSQL (produkcja) |
+| Baza danych | PostgreSQL (produkcja), SQLite (developersko) |
 | Frontend | Jinja2 / Bootstrap 5 / Flatpickr |
 | Autentykacja | JWT + bcrypt (passlib) |
 | Ochrona CSRF | Double Submit Cookie + HMAC |
