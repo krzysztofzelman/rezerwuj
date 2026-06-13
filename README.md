@@ -29,9 +29,11 @@ SaaS do zarządzania rezerwacjami dla małych firm usługowych (fryzjerzy, salon
 | Komponent | Technologia |
 |-----------|-------------|
 | Backend | Python 3.10+ / FastAPI |
-| Baza danych | SQLite (developersko i produkcja) |
+| Baza danych | SQLite (developersko), PostgreSQL (produkcja) |
 | Frontend | Jinja2 / Bootstrap 5 / Flatpickr |
 | Autentykacja | JWT + bcrypt (passlib) |
+| Ochrona CSRF | Double Submit Cookie + HMAC |
+| Rate Limiting | In-memory (IP + ścieżka) |
 | Płatności | Stripe Checkout / Subskrypcje |
 | SMS | SMSAPI.pl / Twilio (mock w development) |
 | Deployment | Docker Compose, VPS (nginx reverse proxy) |
@@ -107,10 +109,10 @@ ADMIN_PASSWORD=Admin123!
 | Zmienna | Opis | Domyślnie |
 |---------|------|-----------|
 | `DATABASE_URL` | URI bazy danych | `sqlite:///./rezerwuj.db` |
-| `SECRET_KEY` | Klucz do JWT (zmień w produkcji!) | `dev-secret-key-...` |
+| `SECRET_KEY` | Klucz do JWT i CSRF (wymagany w produkcji!) | `""` (brak — warning przy starcie) |
 | `SITE_URL` | Adres aplikacji | `http://localhost:8000` |
 | `ADMIN_EMAIL` | Email konta admina | `admin@rezerwuj.pl` |
-| `ADMIN_PASSWORD` | Hasło admina | `Admin123!` |
+| `ADMIN_PASSWORD` | Hasło admina (wymagane w produkcji!) | `""` (brak — warning przy starcie) |
 | `STRIPE_SECRET_KEY` | Klucz Secret Stripe | `sk_test_...` |
 | `STRIPE_PUBLISHABLE_KEY` | Klucz Publiczny Stripe | `pk_test_...` |
 | `STRIPE_WEBHOOK_SECRET` | Sekret webhooka Stripe | `whsec_...` |
@@ -154,13 +156,17 @@ rezerwuj/
 ├── Dockerfile              # Obraz Docker
 ├── docker-compose.yml      # Definicja kontenera
 ├── README.md               # Ten plik
+├── .dockerignore           # Pliki ignorowane przy budowie Docker
 ├── app/
-│   ├── main.py             # Główny plik aplikacji (FastAPI)
+│   ├── main.py             # Główny plik aplikacji (FastAPI + middleware)
 │   ├── config.py           # Konfiguracja z .env
 │   ├── database.py         # Połączenie z bazą (SQLAlchemy)
 │   ├── models.py           # Modele ORM (Provider, Booking, etc.)
 │   ├── schemas.py          # Schematy Pydantic (walidacja)
 │   ├── auth.py             # JWT + bcrypt
+│   ├── csrf.py             # Ochrona CSRF (Double Submit Cookie + HMAC)
+│   ├── ratelimit.py        # Rate limiting (in-memory)
+│   ├── deps.py             # Wspólne zależności FastAPI (rate limit)
 │   ├── utils.py            # Generator slotów czasowych
 │   ├── sms_mock.py         # Obsługa SMS (mock/produkcja)
 │   ├── payments.py         # Integracja Stripe
@@ -202,13 +208,21 @@ rezerwuj/
 
 - **Hasła**: hashowane bcryptem (passlib + bcrypt 4.0.1)
 - **JWT**: tokeny z ważnością 72h
+- **CSRF**: Double Submit Cookie — HMAC-podpisane tokeny, weryfikacja w middleware dla POST/PUT/DELETE, automatyczne wstrzykiwanie przez JS do formularzy
+- **Rate Limiting**: limit 5 req/min dla logowania/rejestracji, 10 req/min dla bookowania, 30 req/min dla pozostałych API — chroni przed brute-force i abuse
 - **SQL Injection**: SQLAlchemy ORM (parametryzowane zapytania)
 - **Walidacja**: Pydantic (wejście API) + HTML5 (formularze)
 - **XSS**: Jinja2 automatycznie escape'uje dane
-- **Ciasteczka**: HttpOnly + SameSite=Lax
+- **Ciasteczka**: HttpOnly + SameSite=Lax (dla access_token), SameSite=Strict (dla CSRF)
 - **Subskrypcja**: blokada dostępu po anulowaniu/braku płatności
 
 ## API Endpoints
+
+### Systemowe
+| Metoda | Ścieżka | Opis |
+|--------|---------|------|
+| GET | `/health` | Healthcheck (Docker, monitorowanie) |
+| GET | `/` | Landing page |
 
 ### Publiczne
 | Metoda | Ścieżka | Opis |

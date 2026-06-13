@@ -1,18 +1,21 @@
 import datetime
 import logging
+import secrets
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request, Depends, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session, selectinload
 
-from app.config import SITE_URL, STRIPE_WEBHOOK_SECRET
+from app.config import SITE_URL, STRIPE_WEBHOOK_SECRET, SECRET_KEY, ADMIN_PASSWORD
 from app.database import engine, Base, get_db, SessionLocal
-from app.models import Provider
+from app.models import Provider, WorkingHour, Service, Booking, BlockedSlot
 from app.auth import decode_access_token
 from app.payments import handle_stripe_webhook, process_subscription_event, MOCK_MODE
+from app.csrf import verify_csrf
 from app.routers import auth_router, public_router, dashboard_router, admin_router
 
 # === Logowanie ===
@@ -25,6 +28,48 @@ logger = logging.getLogger("rezerwuj")
 
 # === Tworzenie tabel ===
 Base.metadata.create_all(bind=engine)
+
+# === Migracje dla SQLite (ALTER TABLE nie jest obsługiwany przez create_all) ===
+def _run_migrations():
+    """Dodaje brakujące kolumny do istniejących tabel SQLite."""
+    from sqlalchemy import inspect as sa_inspect, text as sa_text
+    from app.database import DATABASE_URL
+
+    if not DATABASE_URL.startswith("sqlite"):
+        return
+
+    inspector = sa_inspect(engine)
+    all_models = [Provider, WorkingHour, Service, Booking, BlockedSlot]
+
+    for model_cls in all_models:
+        table_name = model_cls.__tablename__
+        existing_cols = {c["name"] for c in inspector.get_columns(table_name)}
+        model_cols = {c.name for c in model_cls.__table__.columns}
+
+        missing = model_cols - existing_cols
+        if not missing:
+            continue
+
+        with engine.connect() as conn:
+            for col_name in sorted(missing):
+                col = model_cls.__table__.columns[col_name]
+                col_type = col.type.compile(engine.dialect)
+                default = ""
+                if col.default is not None and hasattr(col.default, "arg"):
+                    val = col.default.arg
+                    if isinstance(val, bool):
+                        default = f" DEFAULT {1 if val else 0}"
+                    elif isinstance(val, (int, float)):
+                        default = f" DEFAULT {val}"
+                    elif isinstance(val, str):
+                        default = f" DEFAULT '{val}'"
+                null = "NULL" if col.nullable else "NOT NULL"
+                sql = f"ALTER TABLE {table_name} ADD COLUMN {col_name} {col_type} {null}{default}"
+                conn.execute(sa_text(sql))
+                logger.info(f"✅ Migracja: dodano kolumnę {table_name}.{col_name} ({col_type})")
+
+
+_run_migrations()
 
 
 @asynccontextmanager
@@ -39,6 +84,12 @@ async def lifespan(app: FastAPI):
         logger.info("💳 Stripe: tryb MOCK (bez klucza lub placeholder)")
     else:
         logger.info("💳 Stripe: skonfigurowany")
+
+    # Walidacja bezpieczeństwa
+    if not SECRET_KEY or SECRET_KEY == "dev-secret-key-change-in-production-1234567890":
+        logger.warning("⚠️  SECRET_KEY nie został ustawiony! Użyj silnego, losowego klucza w .env.production")
+    if not ADMIN_PASSWORD or ADMIN_PASSWORD == "Admin123!":
+        logger.warning("⚠️  ADMIN_PASSWORD nie został zmieniony! Ustaw silne hasło dla konta admina")
 
     # Seed konta admina
     _seed_admin()
@@ -89,6 +140,12 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+# === Endpointy systemowe (przed routerami, aby uniknąć przechwycenia przez catch-all /{slug}) ===
+@app.get("/health")
+def health_check():
+    """Endpoint dla Docker healthcheck."""
+    return {"status": "ok"}
+
 # === Statyczne pliki ===
 app.mount("/static", StaticFiles(directory="app/static"), name="static")
 
@@ -104,15 +161,37 @@ app.include_router(public_router.router)
 # Router admina
 app.include_router(admin_router.router)
 
+# === CORS ===
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[SITE_URL],
+    allow_credentials=True,
+    allow_methods=["GET", "POST", "PUT", "DELETE"],
+    allow_headers=["Content-Type", "X-CSRF-Token"],
+)
+
 
 # === Middleware: Auth przez cookie dla dashboardu ===
 @app.middleware("http")
 async def cookie_auth_middleware(request: Request, call_next):
     """Sprawdza ciasteczko access_token i ustawia request.state.provider."""
     request.state.provider = None
+    request.state.csrf_token = ""
 
     # Tylko dla ścieżek dashboardu i admina
     path = request.url.path
+    needs_csrf = path.startswith("/dashboard") or path.startswith("/admin") or path.startswith("/auth")
+    token_set = False
+
+    # Dla GET — wygeneruj CSRF token przed renderowaniem szablonu
+    if request.method == "GET" and needs_csrf:
+        request.state.csrf_token = secrets.token_hex(32)
+        token_set = True
+
+    # Dla POST — zweryfikuj CSRF przed przetworzeniem
+    if request.method in ("POST", "PUT", "DELETE", "PATCH") and needs_csrf and not path.startswith("/stripe/"):
+        verify_csrf(request)
+
     if path.startswith("/dashboard") or path.startswith("/api/dashboard") or path.startswith("/admin"):
         token = None
         auth_cookie = request.cookies.get("access_token")
@@ -149,6 +228,24 @@ async def cookie_auth_middleware(request: Request, call_next):
             return RedirectResponse(url="/auth/logowanie", status_code=302)
 
     response = await call_next(request)
+
+    # Ustaw ciasteczko CSRF z tokenem wygenerowanym przed renderowaniem
+    if request.method == "GET" and token_set:
+        csrf_val = getattr(request.state, "csrf_token", "")
+        if csrf_val:
+            from app.csrf import CSRF_COOKIE_NAME, CSRF_TOKEN_TTL, sign_token
+            signed = sign_token(csrf_val)
+            is_https = request.url.scheme == "https"
+            response.set_cookie(
+                key=CSRF_COOKIE_NAME,
+                value=signed,
+                httponly=False,
+                samesite="strict",
+                max_age=CSRF_TOKEN_TTL,
+                secure=is_https,
+                path="/",
+            )
+
     return response
 
 

@@ -8,11 +8,12 @@ from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 
 from app.database import get_db
+from app.deps import rate_limit_default, rate_limit_booking
 from app.models import Provider, Booking
 from app.schemas import BookRequest
 from app.utils import get_available_slots
 from app.sms_mock import send_booking_confirmation
-from app.payments import create_deposit_checkout, is_stripe_configured
+from app.payments import create_deposit_checkout
 from app.config import SITE_URL
 
 logger = logging.getLogger("rezerwuj.public")
@@ -23,6 +24,15 @@ templates = Jinja2Templates(directory="app/templates")
 @router.get("/{slug}")
 def public_booking_page(slug: str, request: Request, db: Session = Depends(get_db)):
     """Publiczna strona rezerwacji dla danego usługodawcy."""
+    # Zastrzeżone slugi — nie mogą kolidować z systemowymi ścieżkami
+    RESERVED_SLUGS = {"dashboard", "admin", "auth", "static", "api", "stripe", "health"}
+    if slug in RESERVED_SLUGS:
+        return templates.TemplateResponse(
+            "public/not_found.html",
+            {"request": request},
+            status_code=404,
+        )
+
     provider = db.query(Provider).filter(Provider.slug == slug).first()
     if not provider:
         return templates.TemplateResponse(
@@ -63,6 +73,7 @@ def public_booking_page(slug: str, request: Request, db: Session = Depends(get_d
 def get_slots(
     slug: str,
     date: str,
+    _rl: None = Depends(rate_limit_default),
     db: Session = Depends(get_db),
 ):
     """Zwraca dostępne sloty dla podanej daty (AJAX)."""
@@ -95,6 +106,7 @@ def get_slots(
 async def create_booking(
     slug: str,
     request: Request,
+    _rl: None = Depends(rate_limit_booking),
     db: Session = Depends(get_db),
 ):
     """Tworzy nową rezerwację."""
@@ -188,7 +200,7 @@ async def create_booking(
 
 
 @router.get("/api/{slug}/payment-success/{booking_id}")
-def payment_success(slug: str, booking_id: int, db: Session = Depends(get_db)):
+def payment_success(slug: str, booking_id: int, request: Request, db: Session = Depends(get_db)):
     """Strona po udanej płatności zaliczki."""
     booking = db.query(Booking).filter(Booking.id == booking_id).first()
     if not booking:
@@ -201,7 +213,7 @@ def payment_success(slug: str, booking_id: int, db: Session = Depends(get_db)):
     return templates.TemplateResponse(
         "public/confirmation.html",
         {
-            "request": Request,
+            "request": request,
             "provider": provider,
             "booking": booking,
             "paid": True,
@@ -210,7 +222,7 @@ def payment_success(slug: str, booking_id: int, db: Session = Depends(get_db)):
 
 
 @router.get("/api/{slug}/payment-cancel/{booking_id}")
-def payment_cancel(slug: str, booking_id: int, db: Session = Depends(get_db)):
+def payment_cancel(slug: str, booking_id: int, request: Request, db: Session = Depends(get_db)):
     """Strona po anulowaniu płatności."""
     booking = db.query(Booking).filter(Booking.id == booking_id).first()
     if not booking:
@@ -220,7 +232,7 @@ def payment_cancel(slug: str, booking_id: int, db: Session = Depends(get_db)):
     return templates.TemplateResponse(
         "public/confirmation.html",
         {
-            "request": Request,
+            "request": request,
             "provider": provider,
             "booking": booking,
             "paid": False,
@@ -230,7 +242,11 @@ def payment_cancel(slug: str, booking_id: int, db: Session = Depends(get_db)):
 
 
 @router.get("/api/{slug}/info")
-def provider_info(slug: str, db: Session = Depends(get_db)):
+def provider_info(
+    slug: str,
+    _rl: None = Depends(rate_limit_default),
+    db: Session = Depends(get_db),
+):
     """Zwraca podstawowe informacje o usługodawcy (AJAX)."""
     provider = db.query(Provider).filter(Provider.slug == slug).first()
     if not provider:

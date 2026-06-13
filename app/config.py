@@ -5,7 +5,7 @@ load_dotenv()
 
 # === Aplikacja ===
 DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./rezerwuj.db")
-SECRET_KEY = os.getenv("SECRET_KEY", "dev-secret-key-change-in-production-1234567890")
+SECRET_KEY = os.getenv("SECRET_KEY", "")
 JWT_ALGORITHM = os.getenv("JWT_ALGORITHM", "HS256")
 JWT_EXPIRY_HOURS = 72
 SITE_URL = os.getenv("SITE_URL", "http://localhost:8000")
@@ -28,7 +28,7 @@ MAX_BOOKING_DAYS_AHEAD = int(os.getenv("MAX_BOOKING_DAYS_AHEAD", "60"))
 
 # === Admin ===
 ADMIN_EMAIL = os.getenv("ADMIN_EMAIL", "admin@rezerwuj.pl")
-ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD", "Admin123!")
+ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD", "")
 
 # === Stripe Product price (fallback) ===
 STRIPE_CURRENCY = "pln"

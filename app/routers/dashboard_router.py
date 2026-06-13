@@ -5,7 +5,6 @@ from fastapi import APIRouter, Depends, HTTPException, Request, status
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
-from sqlalchemy import and_
 
 from app.database import get_db
 from app.models import Provider, WorkingHour, Booking, BlockedSlot, Service
@@ -13,7 +12,6 @@ from app.schemas import (
     SettingsUpdate,
     HoursUpdate,
     BlockSlotRequest,
-    ServiceCreate,
 )
 from app.payments import (
     create_subscription_checkout,
@@ -45,6 +43,7 @@ def _get_dashboard_context(request: Request) -> dict:
         "request": request,
         "provider": provider,
         "site_url": SITE_URL,
+        "csrf_token": getattr(request.state, "csrf_token", ""),
     }
 
 
@@ -127,6 +126,7 @@ def bookings_list(request: Request):
         {
             ** _get_dashboard_context(request),
             "bookings": bookings,
+            "today": datetime.date.today(),
         },
     )
 

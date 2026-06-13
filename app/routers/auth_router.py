@@ -7,6 +7,7 @@ from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 
 from app.database import get_db
+from app.deps import rate_limit_strict
 from app.models import Provider
 from app.schemas import RegisterRequest, LoginRequest
 from app.auth import hash_password, verify_password, create_access_token
@@ -30,17 +31,27 @@ def _set_auth_cookie(response: RedirectResponse, token: str) -> None:
     )
 
 
+def _auth_context(request: Request) -> dict:
+    """Kontekst dla stron logowania/rejestracji."""
+    return {
+        "request": request,
+        "csrf_token": getattr(request.state, "csrf_token", ""),
+    }
+
+
 @router.get("/rejestracja")
 def register_page(request: Request):
     """Strona rejestracji."""
     return templates.TemplateResponse(
-        "dashboard/register.html", {"request": request}
+        "dashboard/register.html",
+        _auth_context(request),
     )
 
 
 @router.post("/rejestracja")
 async def register(
     request: Request,
+    _rl: None = Depends(rate_limit_strict),
     db: Session = Depends(get_db),
 ):
     """Rejestracja nowego usługodawcy."""
@@ -55,7 +66,7 @@ async def register(
     except ValueError as e:
         return templates.TemplateResponse(
             "dashboard/register.html",
-            {"request": request, "error": str(e)},
+            {"request": request, "error": str(e), "csrf_token": getattr(request.state, "csrf_token", "")},
         )
 
     # Sprawdź czy email już istnieje
@@ -63,7 +74,7 @@ async def register(
     if existing:
         return templates.TemplateResponse(
             "dashboard/register.html",
-            {"request": request, "error": "Ten adres e-mail jest już zarejestrowany"},
+            {"request": request, "error": "Ten adres e-mail jest już zarejestrowany", "csrf_token": getattr(request.state, "csrf_token", "")},
         )
 
     # Sprawdź czy slug już istnieje
@@ -74,6 +85,7 @@ async def register(
             {
                 "request": request,
                 "error": "Ten identyfikator (slug) jest już zajęty. Wybierz inny.",
+                "csrf_token": getattr(request.state, "csrf_token", ""),
             },
         )
 
@@ -139,13 +151,14 @@ def _create_default_hours(db: Session, provider: Provider) -> None:
 def login_page(request: Request):
     """Strona logowania."""
     return templates.TemplateResponse(
-        "dashboard/login.html", {"request": request}
+        "dashboard/login.html", _auth_context(request)
     )
 
 
 @router.post("/logowanie")
 async def login(
     request: Request,
+    _rl: None = Depends(rate_limit_strict),
     db: Session = Depends(get_db),
 ):
     """Logowanie usługodawcy."""
@@ -158,7 +171,7 @@ async def login(
     except ValueError as e:
         return templates.TemplateResponse(
             "dashboard/login.html",
-            {"request": request, "error": str(e)},
+            {"request": request, "error": str(e), "csrf_token": getattr(request.state, "csrf_token", "")},
         )
 
     provider = (
@@ -170,7 +183,7 @@ async def login(
     if not provider or not verify_password(login_data.password, provider.password_hash):
         return templates.TemplateResponse(
             "dashboard/login.html",
-            {"request": request, "error": "Nieprawidłowy e-mail lub hasło"},
+            {"request": request, "error": "Nieprawidłowy e-mail lub hasło", "csrf_token": getattr(request.state, "csrf_token", "")},
         )
 
     token = create_access_token(provider.id)

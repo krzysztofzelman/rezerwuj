@@ -26,7 +26,7 @@ def _get_admin(request: Request) -> Provider:
 @router.get("/admin")
 def admin_home(request: Request, db: Session = Depends(get_db)):
     """Panel admina — lista wszystkich użytkowników."""
-    _get_admin(request)
+    admin = _get_admin(request)
 
     users = (
         db.query(Provider)
@@ -66,7 +66,7 @@ def admin_home(request: Request, db: Session = Depends(get_db)):
         "admin/index.html",
         {
             "request": request,
-            "provider": _get_admin(request),
+            "provider": admin,
             "site_url": SITE_URL,
             "stats": stats,
             "total_users": total_users,
@@ -80,13 +80,15 @@ def admin_home(request: Request, db: Session = Depends(get_db)):
 @router.post("/admin/users/{user_id}/toggle-active")
 def toggle_user_active(user_id: int, request: Request, db: Session = Depends(get_db)):
     """Aktywuje/dezaktywuje użytkownika."""
-    _get_admin(request)
+    admin = _get_admin(request)
 
     user = db.query(Provider).filter(Provider.id == user_id).first()
     if not user:
         raise HTTPException(status_code=404, detail="Użytkownik nie istnieje")
     if user.is_admin:
         raise HTTPException(status_code=400, detail="Nie możesz dezaktywować admina")
+    if user.id == admin.id:
+        raise HTTPException(status_code=400, detail="Nie możesz dezaktywować samego siebie")
 
     user.is_active = not user.is_active
     db.commit()
