@@ -2,6 +2,7 @@ import datetime
 import logging
 import secrets
 from contextlib import asynccontextmanager
+from urllib.parse import parse_qs
 
 from fastapi import FastAPI, Request, Depends, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
@@ -209,8 +210,10 @@ async def cookie_auth_middleware(request: Request, call_next):
         try:
             # Browser JS wstawia _csrf_token jako pole formularza (nie nagłówek)
             if not request.headers.get("X-CSRF-Token"):
-                form = await request.form()
-                form_token = form.get("_csrf_token", "")
+                # Czytamy surowe body, aby nie konsumować strumienia dla request.form()
+                body_bytes = await request.body()
+                params = parse_qs(body_bytes.decode("utf-8"))
+                form_token = params.get("_csrf_token", [None])[0]
                 if form_token:
                     # Wstrzyknij do scope i zresetuj cache headers
                     request.scope["headers"].append(("x-csrf-token".encode(), form_token.encode()))
