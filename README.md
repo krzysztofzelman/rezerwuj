@@ -2,6 +2,8 @@
 
 SaaS do zarządzania rezerwacjami dla małych firm usługowych (fryzjerzy, salony piękności, masażyści).
 
+**Produkcja:** [https://rezerwuj.kzelman.pl](https://rezerwuj.kzelman.pl)
+
 ## Funkcje
 
 ### Dla klientów
@@ -17,18 +19,24 @@ SaaS do zarządzania rezerwacjami dla małych firm usługowych (fryzjerzy, salon
 - **Unikalny link** — `{domena}/{slug}` do udostępnienia klientom
 - **Subskrypcja** — 14 dni za darmo, potem 79 zł/mies. (Stripe)
 
+### Dla administratora
+- **Panel admina** — `/admin` — lista wszystkich użytkowników
+- **Statystyki** — liczba użytkowników, aktywni, rezerwacje
+- **Zarządzanie** — aktywacja/dezaktywacja kont
+
 ## Tech Stack
 
 | Komponent | Technologia |
 |-----------|-------------|
 | Backend | Python 3.10+ / FastAPI |
-| Baza danych | SQLite (developersko) / PostgreSQL (produkcja) |
+| Baza danych | SQLite (developersko i produkcja) |
 | Frontend | Jinja2 / Bootstrap 5 / Flatpickr |
-| Autentykacja | JWT + bcrypt |
+| Autentykacja | JWT + bcrypt (passlib) |
 | Płatności | Stripe Checkout / Subskrypcje |
 | SMS | SMSAPI.pl / Twilio (mock w development) |
+| Deployment | Docker Compose, VPS (nginx reverse proxy) |
 
-## Szybki start
+## Szybki start (lokalny)
 
 ### 1. Wymagania
 
@@ -38,13 +46,8 @@ SaaS do zarządzania rezerwacjami dla małych firm usługowych (fryzjerzy, salon
 ### 2. Instalacja
 
 ```bash
-# Sklonuj repozytorium
 cd rezerwuj
-
-# Zainstaluj zależności
 pip install -r requirements.txt
-
-# Skopiuj konfigurację
 cp .env.example .env
 # Edytuj .env według potrzeb
 ```
@@ -64,6 +67,41 @@ Aplikacja będzie dostępna pod adresem: **http://localhost:8000**
 3. Po rejestracji zostaniesz automatycznie zalogowany
 4. Twój publiczny link: http://localhost:8000/{slug}
 
+## Deployment (Docker + VPS)
+
+### Wymagania
+
+- Serwer VPS z Docker i Docker Compose
+- Domena z certyfikatem SSL (nginx na hoście)
+
+### Pliki deploymnetu
+
+| Plik | Opis |
+|------|------|
+| `Dockerfile` | Obraz Pythona z aplikacją |
+| `docker-compose.yml` | Definicja kontenera (port 8002) |
+| `.env.production` | Konfiguracja produkcyjna |
+| `scripts/deploy.sh` | Pull obrazu, restart kontenera |
+| `scripts/vps-init.sh` | Inicjalizacja VPS (jednorazowo) |
+
+Aplikacja uruchamiana na `127.0.0.1:8002`, obsługiwana przez nginx na hoście z SSL.
+
+## Panel administracyjny
+
+Dostępny po zalogowaniu na konto z rolą admina:
+
+| Ścieżka | Opis |
+|---------|------|
+| `/admin` | Panel admina — lista użytkowników, statystyki |
+| `/admin/users/{id}/toggle-active` | Aktywacja/dezaktywacja konta |
+
+Konto admina tworzone automatycznie przy starcie aplikacji — konfiguracja w `.env.production`:
+
+```
+ADMIN_EMAIL=admin@rezerwuj.pl
+ADMIN_PASSWORD=Admin123!
+```
+
 ## Konfiguracja (.env)
 
 | Zmienna | Opis | Domyślnie |
@@ -71,6 +109,8 @@ Aplikacja będzie dostępna pod adresem: **http://localhost:8000**
 | `DATABASE_URL` | URI bazy danych | `sqlite:///./rezerwuj.db` |
 | `SECRET_KEY` | Klucz do JWT (zmień w produkcji!) | `dev-secret-key-...` |
 | `SITE_URL` | Adres aplikacji | `http://localhost:8000` |
+| `ADMIN_EMAIL` | Email konta admina | `admin@rezerwuj.pl` |
+| `ADMIN_PASSWORD` | Hasło admina | `Admin123!` |
 | `STRIPE_SECRET_KEY` | Klucz Secret Stripe | `sk_test_...` |
 | `STRIPE_PUBLISHABLE_KEY` | Klucz Publiczny Stripe | `pk_test_...` |
 | `STRIPE_WEBHOOK_SECRET` | Sekret webhooka Stripe | `whsec_...` |
@@ -109,7 +149,10 @@ Aby włączyć rzeczywiste SMS-y:
 rezerwuj/
 ├── .env                    # Konfiguracja lokalna
 ├── .env.example            # Wzór konfiguracji
+├── .env.production         # Konfiguracja produkcyjna
 ├── requirements.txt        # Zależności Pythona
+├── Dockerfile              # Obraz Docker
+├── docker-compose.yml      # Definicja kontenera
 ├── README.md               # Ten plik
 ├── app/
 │   ├── main.py             # Główny plik aplikacji (FastAPI)
@@ -124,7 +167,8 @@ rezerwuj/
 │   ├── routers/
 │   │   ├── auth_router.py      # Rejestracja/logowanie
 │   │   ├── public_router.py    # Publiczna strona rezerwacji
-│   │   └── dashboard_router.py # Panel usługodawcy
+│   │   ├── dashboard_router.py # Panel usługodawcy
+│   │   └── admin_router.py     # Panel administracyjny
 │   ├── templates/
 │   │   ├── base.html
 │   │   ├── public/
@@ -132,27 +176,31 @@ rezerwuj/
 │   │   │   ├── confirmation.html
 │   │   │   ├── booking_closed.html
 │   │   │   └── not_found.html
-│   │   └── dashboard/
-│   │       ├── base_dashboard.html
-│   │       ├── login.html
-│   │       ├── register.html
-│   │       ├── index.html
-│   │       ├── bookings.html
-│   │       ├── settings.html
-│   │       ├── billing.html
-│   │       └── preview.html
+│   │   ├── dashboard/
+│   │   │   ├── base_dashboard.html
+│   │   │   ├── login.html
+│   │   │   ├── register.html
+│   │   │   ├── index.html
+│   │   │   ├── bookings.html
+│   │   │   ├── settings.html
+│   │   │   ├── billing.html
+│   │   │   └── preview.html
+│   │   └── admin/
+│   │       ├── base_admin.html
+│   │       └── index.html
 │   └── static/
 │       ├── css/
 │       │   └── style.css
 │       └── js/
 │           └── calendar.js
-└── migrations/
-    └── 001_initial.sql     # Schemat bazy danych
+└── scripts/
+    ├── deploy.sh           # Deploy na VPS
+    └── vps-init.sh         # Inicjalizacja VPS
 ```
 
 ## Bezpieczeństwo
 
-- **Hasła**: hashowane bcryptem (passlib)
+- **Hasła**: hashowane bcryptem (passlib + bcrypt 4.0.1)
 - **JWT**: tokeny z ważnością 72h
 - **SQL Injection**: SQLAlchemy ORM (parametryzowane zapytania)
 - **Walidacja**: Pydantic (wejście API) + HTML5 (formularze)
@@ -191,19 +239,16 @@ rezerwuj/
 | POST | `/auth/logowanie` | Logowanie |
 | GET | `/auth/wyloguj` | Wylogowanie |
 
+### Admin (wymaga logowania + rola admina)
+| Metoda | Ścieżka | Opis |
+|--------|---------|------|
+| GET | `/admin` | Panel admina |
+| POST | `/admin/users/{id}/toggle-active` | Aktywacja/dezaktywacja konta |
+
 ### Webhook
 | Metoda | Ścieżka | Opis |
 |--------|---------|------|
 | POST | `/stripe/webhook` | Webhook Stripe |
-
-## Plan rozwoju (TODO)
-
-- [ ] Obsługa PostgreSQL zamiast SQLite
-- [ ] Panel admina (zarządzanie wszystkimi tenantami)
-- [ ] Eksport rezerwacji do CSV/PDF
-- [ ] Przypomnienia SMS/email automatyczne (z harmonogramem)
-- [ ] Strona firmowa z portfolio usługodawcy
-- [ ] System opinii i ocen po wizycie
 
 ## Licencja
 
