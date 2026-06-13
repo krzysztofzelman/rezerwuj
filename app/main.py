@@ -197,6 +197,7 @@ async def general_error_handler(request: Request, exc):
 @app.get("/")
 def landing_page(request: Request):
     """Strona główna — landing page z informacją o produkcie."""
+    templates = Jinja2Templates(directory="app/templates")
     return templates.TemplateResponse("public/landing.html", {"request": request})
 
 
