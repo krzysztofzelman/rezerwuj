@@ -129,8 +129,10 @@ def migrate():
         for i in range(0, len(rows), batch_size):
             batch = rows[i:i + batch_size]
             with pg_engine.connect() as conn:
+                placeholders = ", ".join([f":{c}" for c in columns])
+                stmt = text(f"INSERT INTO {table_name} ({', '.join(columns)}) VALUES ({placeholders})")
                 conn.execute(
-                    text(f"INSERT INTO {table_name} ({', '.join(columns)}) VALUES {', '.join([':' + c for c in columns])}"),
+                    stmt,
                     [{c: r[c] for c in columns} for r in batch]
                 )
                 conn.commit()
