@@ -31,24 +31,22 @@ jobs:
 
             # Utwórz .env.production jeśli brak (pierwsze wdrożenie lub po migracji)
             if [ ! -f .env.production ]; then
-              cat > .env.production << 'ENVEOF'
-DATABASE_URL=sqlite:///./data/napraw_mnie.db
-SECRET_KEY=change-this-to-a-long-random-secret-key-for-production
-SITE_URL=https://rezerwuj.kzelman.pl
-STRIPE_SECRET_KEY=
-STRIPE_PUBLISHABLE_KEY=
-STRIPE_WEBHOOK_SECRET=
-SUBSCRIPTION_PRICE_ID=
-SMS_API_KEY=
-SMS_SENDER=NaprawMnie
-SMS_MOCK=true
-TRIAL_DAYS=14
-MAX_BOOKING_DAYS_AHEAD=60
-SUBSCRIPTION_PRICE_PLN=4900
-ENVEOF
+              echo "DATABASE_URL=sqlite:///./data/napraw_mnie.db" > .env.production
+              echo "SECRET_KEY=change-this-to-a-long-random-secret-key-for-production" >> .env.production
+              echo "SITE_URL=https://rezerwuj.kzelman.pl" >> .env.production
+              echo "STRIPE_SECRET_KEY=" >> .env.production
+              echo "STRIPE_PUBLISHABLE_KEY=" >> .env.production
+              echo "STRIPE_WEBHOOK_SECRET=" >> .env.production
+              echo "SUBSCRIPTION_PRICE_ID=" >> .env.production
+              echo "SMS_API_KEY=" >> .env.production
+              echo "SMS_SENDER=NaprawMnie" >> .env.production
+              echo "SMS_MOCK=true" >> .env.production
+              echo "TRIAL_DAYS=14" >> .env.production
+              echo "MAX_BOOKING_DAYS_AHEAD=60" >> .env.production
+              echo "SUBSCRIPTION_PRICE_PLN=4900" >> .env.production
               NEW_KEY=$(python3 -c "import secrets; print(secrets.token_urlsafe(32))" 2>/dev/null || openssl rand -base64 32)
               sed -i "s/SECRET_KEY=.*/SECRET_KEY=$NEW_KEY/" .env.production
-              echo "⚠️  .env.production utworzony z domyślnymi wartościami — uzupełnij SECRET_KEY i klucze API!"
+              echo "Warning: .env.production utworzony z domyslnymi wartosciami - uzupelnij klucze API!"
             fi
 
             git pull origin master
