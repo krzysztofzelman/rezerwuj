@@ -274,7 +274,7 @@
         } finally {
             state.isSubmitting = false;
             bookBtn.disabled = false;
-            bookBtn.innerHTML = '<i class="bi bi-calendar-check"></i> Rezerwuj termin';
+            bookBtn.innerHTML = '<i class="bi bi-calendar-check"></i> Zgłoś do naprawy';
         }
     });
 
