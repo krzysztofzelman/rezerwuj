@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}Potwierdzenie rezerwacji — {{ provider.name }}{% endblock %}
+{% block title %}Potwierdzenie zlecenia — {{ provider.name }}{% endblock %}
 {% block content %}
 <div class="container min-vh-100 d-flex align-items-center justify-content-center">
     <div class="text-center" style="max-width: 500px;">
@@ -8,22 +8,25 @@
                 <i class="bi bi-credit-card-2-back display-1 text-warning"></i>
             </div>
             <h1 class="h3 mb-3">Płatność została anulowana</h1>
-            <p class="text-muted mb-1">Twoja rezerwacja u <strong>{{ provider.name }}</strong> na dzień <strong>{{ booking.booking_date.strftime('%d.%m.%Y') }}</strong> o godzinie <strong>{{ booking.booking_time.strftime('%H:%M') }}</strong> została przyjęta.</p>
+            <p class="text-muted mb-1">Twoje zlecenie serwisowe w <strong>{{ provider.name }}</strong> na dzień <strong>{{ booking.booking_date.strftime('%d.%m.%Y') }}</strong> o godzinie <strong>{{ booking.booking_time.strftime('%H:%M') }}</strong> zostało przyjęte.</p>
             {% if provider.require_deposit and provider.deposit_amount > 0 %}
-                <p class="text-muted">Aby potwierdzić wizytę, wymagana jest wpłata zaliczki w wysokości <strong>{{ (provider.deposit_amount / 100)|round(2) }} zł</strong>.</p>
+                <p class="text-muted">Aby potwierdzić przyjęcie zlecenia, wymagana jest wpłata zaliczki w wysokości <strong>{{ (provider.deposit_amount / 100)|round(2) }} zł</strong>.</p>
                 <p class="small text-muted">Link do płatności został wysłany na podany adres e-mail (jeśli został podany).</p>
             {% endif %}
         {% else %}
             <div class="mb-4">
                 <i class="bi bi-check-circle-fill display-1 text-success"></i>
             </div>
-            <h1 class="h3 mb-3">Potwierdzenie rezerwacji</h1>
+            <h1 class="h3 mb-3">Zlecenie serwisowe przyjęte</h1>
             <div class="card shadow-sm mb-3">
                 <div class="card-body">
-                    <p class="mb-1"><strong>Usługodawca:</strong> {{ provider.name }}</p>
-                    <p class="mb-1"><strong>Data:</strong> {{ booking.booking_date.strftime('%d.%m.%Y') }}</p>
+                    <p class="mb-1"><strong>Serwis:</strong> {{ provider.name }}</p>
+                    <p class="mb-1"><strong>Sprzęt:</strong> {{ booking.brand or "—" }}{% if booking.model_name %} {{ booking.model_name }}{% endif %}</p>
+                    <p class="mb-1"><strong>Data przyjęcia:</strong> {{ booking.booking_date.strftime('%d.%m.%Y') }}</p>
                     <p class="mb-1"><strong>Godzina:</strong> {{ booking.booking_time.strftime('%H:%M') }}</p>
-                    <p class="mb-0"><strong>Czas trwania:</strong> ok. {{ booking.duration }} min</p>
+                    <p class="mb-0"><strong>Opis usterki:</strong><br>
+                        <small class="text-muted">{{ booking.problem_description or "—" }}</small>
+                    </p>
                 </div>
             </div>
             <p class="text-muted small">

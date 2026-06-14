@@ -9,7 +9,7 @@ from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.deps import rate_limit_default, rate_limit_booking
-from app.models import Provider, Booking, Service
+from app.models import ServiceProvider, Order, Service
 from app.schemas import BookRequest
 from app.utils import get_available_slots
 from app.sms_mock import (
@@ -23,7 +23,7 @@ from app.email_mock import (
 from app.payments import create_deposit_checkout
 from app.config import SITE_URL, RECAPTCHA_SITE_KEY, RECAPTCHA_SECRET_KEY
 
-logger = logging.getLogger("rezerwuj.public")
+logger = logging.getLogger("servicehub.public")
 router = APIRouter(tags=["public"])
 templates = Jinja2Templates(directory="app/templates")
 
@@ -40,7 +40,7 @@ def public_booking_page(slug: str, request: Request, db: Session = Depends(get_d
             status_code=404,
         )
 
-    provider = db.query(Provider).filter(Provider.slug == slug).first()
+    provider = db.query(ServiceProvider).filter(ServiceProvider.slug == slug).first()
     if not provider:
         return templates.TemplateResponse(
             "public/not_found.html",
@@ -48,7 +48,7 @@ def public_booking_page(slug: str, request: Request, db: Session = Depends(get_d
             status_code=404,
         )
 
-    # Sprawdź czy usługodawca może przyjmować rezerwacje
+    # Sprawdź czy serwis może przyjmować zlecenia
     if not provider.can_accept_bookings:
         return templates.TemplateResponse(
             "public/booking_closed.html",
@@ -86,7 +86,7 @@ def get_slots(
     db: Session = Depends(get_db),
 ):
     """Zwraca dostępne sloty dla podanej daty (AJAX). Opcjonalnie `service_id` dla czasu trwania usługi."""
-    provider = db.query(Provider).filter(Provider.slug == slug).first()
+    provider = db.query(ServiceProvider).filter(ServiceProvider.slug == slug).first()
     if not provider or not provider.can_accept_bookings:
         return JSONResponse(content={"slots": [], "error": "Brak dostępnych terminów"})
 
@@ -129,7 +129,7 @@ def provider_services(
     db: Session = Depends(get_db),
 ):
     """Zwraca aktywne usługi dla usługodawcy (AJAX)."""
-    provider = db.query(Provider).filter(Provider.slug == slug).first()
+    provider = db.query(ServiceProvider).filter(ServiceProvider.slug == slug).first()
     if not provider:
         return JSONResponse(content={"services": []})
 
@@ -163,7 +163,7 @@ async def create_booking(
     db: Session = Depends(get_db),
 ):
     """Tworzy nową rezerwację."""
-    provider = db.query(Provider).filter(Provider.slug == slug).first()
+    provider = db.query(ServiceProvider).filter(ServiceProvider.slug == slug).first()
     if not provider or not provider.can_accept_bookings:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -235,7 +235,7 @@ async def create_booking(
         )
 
     # Utwórz rezerwację
-    booking = Booking(
+    booking = Order(
         provider_id=provider.id,
         client_name=book_data.client_name,
         client_surname=book_data.client_surname,
@@ -314,14 +314,14 @@ async def create_booking(
 @router.get("/api/{slug}/payment-success/{booking_id}")
 def payment_success(slug: str, booking_id: int, request: Request, db: Session = Depends(get_db)):
     """Strona po udanej płatności zaliczki."""
-    booking = db.query(Booking).filter(Booking.id == booking_id).first()
+    booking = db.query(Order).filter(Order.id == booking_id).first()
     if not booking:
         return RedirectResponse(url=f"/{slug}")
 
     booking.paid = True
     db.commit()
 
-    provider = db.query(Provider).filter(Provider.id == booking.provider_id).first()
+    provider = db.query(ServiceProvider).filter(ServiceProvider.id == booking.provider_id).first()
     return templates.TemplateResponse(
         "public/confirmation.html",
         {
@@ -336,11 +336,11 @@ def payment_success(slug: str, booking_id: int, request: Request, db: Session = 
 @router.get("/api/{slug}/payment-cancel/{booking_id}")
 def payment_cancel(slug: str, booking_id: int, request: Request, db: Session = Depends(get_db)):
     """Strona po anulowaniu płatności."""
-    booking = db.query(Booking).filter(Booking.id == booking_id).first()
+    booking = db.query(Order).filter(Order.id == booking_id).first()
     if not booking:
         return RedirectResponse(url=f"/{slug}")
 
-    provider = db.query(Provider).filter(Provider.id == booking.provider_id).first()
+    provider = db.query(ServiceProvider).filter(ServiceProvider.id == booking.provider_id).first()
     return templates.TemplateResponse(
         "public/confirmation.html",
         {
@@ -360,7 +360,7 @@ def provider_info(
     db: Session = Depends(get_db),
 ):
     """Zwraca podstawowe informacje o usługodawcy (AJAX)."""
-    provider = db.query(Provider).filter(Provider.slug == slug).first()
+    provider = db.query(ServiceProvider).filter(ServiceProvider.slug == slug).first()
     if not provider:
         return JSONResponse(content={"error": "Not found"}, status_code=404)
 

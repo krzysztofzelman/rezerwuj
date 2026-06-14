@@ -7,11 +7,11 @@ from typing import List, Tuple
 from sqlalchemy.orm import Session
 from sqlalchemy import and_
 
-from app.models import Provider, WorkingHour, Booking, BlockedSlot
+from app.models import ServiceProvider, WorkingHour, Order, BlockedSlot
 
 
 def get_available_slots(
-    db: Session, provider: Provider, target_date: datetime.date, duration: int | None = None
+    db: Session, provider: ServiceProvider, target_date: datetime.date, duration: int | None = None
 ) -> List[str]:
     """
     Zwraca listę dostępnych godzin (HH:MM) dla danego usługodawcy i daty.
@@ -53,13 +53,13 @@ def get_available_slots(
             if not _is_time_overlap(slot, duration, break_start, break_end)
         ]
 
-    # 4. Pobierz istniejące rezerwacje (potwierdzone) na ten dzień
+    # 4. Pobierz istniejące zamówienia (potwierdzone) na ten dzień
     existing_bookings = (
-        db.query(Booking)
+        db.query(Order)
         .filter(
-            Booking.provider_id == provider.id,
-            Booking.booking_date == target_date,
-            Booking.status == "confirmed",
+            Order.provider_id == provider.id,
+            Order.booking_date == target_date,
+            Order.status == "confirmed",
         )
         .all()
     )

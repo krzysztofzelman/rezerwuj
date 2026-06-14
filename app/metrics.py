@@ -1,4 +1,4 @@
-"""Metryki Prometheus dla systemu Rezerwuj.
+"""Metryki Prometheus dla systemu ServiceHub.
 
 Liczniki i wskaźniki dostępne na endpointcie GET /metrics.
 """
@@ -9,47 +9,47 @@ from prometheus_client import Counter, Gauge, Histogram, generate_latest, CONTEN
 from fastapi import Request, Response
 from starlette.middleware.base import BaseHTTPMiddleware
 
-logger = logging.getLogger("rezerwuj.metrics")
+logger = logging.getLogger("servicehub.metrics")
 
 # === Liczniki ===
 
-bookings_total = Counter(
-    "rezerwuj_bookings_total",
-    "Łączna liczba rezerwacji",
+orders_total = Counter(
+    "servicehub_orders_total",
+    "Łączna liczba zleceń",
     ["status", "provider_id"],
 )
 
 rate_limit_hits = Counter(
-    "rezerwuj_rate_limit_hits_total",
+    "servicehub_rate_limit_hits_total",
     "Liczba odrzuconych żądań (429)",
 )
 
 emails_sent = Counter(
-    "rezerwuj_emails_sent_total",
+    "servicehub_emails_sent_total",
     "Liczba wysłanych e-maili",
 )
 
 password_resets = Counter(
-    "rezerwuj_password_resets_total",
+    "servicehub_password_resets_total",
     "Liczba wysłanych linków do resetu hasła",
 )
 
 # === Wskaźniki ===
 
 active_providers = Gauge(
-    "rezerwuj_active_providers",
-    "Liczba aktywnych usługodawców (can_accept_bookings)",
+    "servicehub_active_providers",
+    "Liczba aktywnych usługodawców (can_accept_orders)",
 )
 
-total_bookings_gauge = Gauge(
-    "rezerwuj_total_bookings",
-    "Łączna liczba rezerwacji w systemie",
+total_orders_gauge = Gauge(
+    "servicehub_total_orders",
+    "Łączna liczba zleceń w systemie",
 )
 
 # === Histogramy ===
 
 request_duration = Histogram(
-    "rezerwuj_request_duration_seconds",
+    "servicehub_request_duration_seconds",
     "Czas trwania żądań HTTP",
     ["method", "path", "status_code"],
     buckets=(0.01, 0.05, 0.1, 0.25, 0.5, 1.0, 2.5, 5.0, 10.0),
@@ -76,20 +76,20 @@ class MetricsMiddleware(BaseHTTPMiddleware):
 def metrics_endpoint() -> Response:
     """Zwraca metryki w formacie Prometheus."""
     from app.database import SessionLocal
-    from app.models import Booking, Provider
+    from app.models import Order, ServiceProvider
 
     db = SessionLocal()
     try:
         # Aktualizuj wskaźniki
         active_count = (
-            db.query(Provider)
-            .filter(Provider.is_active == True)  # noqa: E712
+            db.query(ServiceProvider)
+            .filter(ServiceProvider.is_active == True)  # noqa: E712
             .count()
         )
         active_providers.set(active_count)
 
-        booking_count = db.query(Booking).count()
-        total_bookings_gauge.set(booking_count)
+        order_count = db.query(Order).count()
+        total_orders_gauge.set(order_count)
     except Exception as e:
         logger.error("Błąd podczas zbierania metryk: %s", e)
     finally:

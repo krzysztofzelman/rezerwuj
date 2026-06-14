@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}{{ provider.name }} — Rezerwacja Online{% endblock %}
+{% block title %}{{ provider.name }} — Zgłoś sprzęt do naprawy{% endblock %}
 {% block extra_head %}
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
 {% if recaptcha_site_key %}
@@ -13,97 +13,146 @@
             <!-- Nagłówek -->
             <div class="text-center mb-4">
                 <h1 class="h3 mb-1">{{ provider.company_name or provider.name }}</h1>
-                <p class="text-muted">Wybierz dogodny termin wizyty</p>
+                <p class="text-muted">Zgłoś sprzęt RTV/AGD do naprawy</p>
                 {% if require_deposit %}
                     <div class="alert alert-info py-2 small">
                         <i class="bi bi-info-circle"></i>
                         Wymagana jest zaliczka w wysokości <strong>{{ deposit_amount_pln }} zł</strong>.
-                        Rezerwacja zostanie potwierdzona po dokonaniu płatności.
+                        Zlecenie zostanie potwierdzone po dokonaniu płatności.
                     </div>
                 {% endif %}
             </div>
 
             <div class="card shadow-sm">
                 <div class="card-body p-4">
-                    <div class="row g-4">
-                        <!-- Kalendarz -->
-                        <div class="col-md-6">
-                            <h6 class="fw-bold mb-3">1. Wybierz datę</h6>
-                            <div id="calendar"></div>
-                            <p class="text-muted small mt-2">
-                                <i class="bi bi-circle-fill text-success" style="font-size: 0.6rem;"></i> Dostępne
-                                <i class="bi bi-circle-fill text-muted ms-2" style="font-size: 0.6rem;"></i> Brak terminów
-                            </p>
-                        </div>
-
-                        <!-- Godziny -->
-                        <div class="col-md-6">
-                            <h6 class="fw-bold mb-3">2. Wybierz godzinę</h6>
-                            <div id="slots-container" class="text-center text-muted py-5">
-                                <i class="bi bi-hand-index-thumb display-6"></i>
-                                <p class="mt-2">Wybierz datę, aby zobaczyć dostępne godziny</p>
+                    <form id="booking-form" novalidate>
+                        <!-- Dane sprzętu -->
+                        <h6 class="fw-bold mb-3 border-bottom pb-2">1. Dane sprzętu</h6>
+                        <div class="row g-3 mb-4">
+                            <div class="col-sm-6">
+                                <label for="device_type" class="form-label small">Typ urządzenia *</label>
+                                <select class="form-select" id="device_type" name="device_type" required>
+                                    <option value="">— Wybierz —</option>
+                                    <option value="tv">Telewizor / Monitor</option>
+                                    <option value="audio">Sprzęt audio</option>
+                                    <option value="washing_machine">Pralka</option>
+                                    <option value="dishwasher">Zmywarka</option>
+                                    <option value="fridge">Lodówka / Zamrażarka</option>
+                                    <option value="oven">Piekarnik / Kuchenka</option>
+                                    <option value="microwave">Mikrofalówka</option>
+                                    <option value="vacuum">Odkurzacz</option>
+                                    <option value="computer">Komputer / Laptop</option>
+                                    <option value="phone">Telefon / Tablet</option>
+                                    <option value="console">Konsola do gier</option>
+                                    <option value="other">Inne</option>
+                                </select>
+                                <div class="invalid-feedback">Wybierz typ urządzenia</div>
+                            </div>
+                            <div class="col-sm-6">
+                                <label for="brand" class="form-label small">Marka *</label>
+                                <input type="text" class="form-control" id="brand" name="brand" required minlength="2"
+                                       placeholder="np. Samsung, Bosch, Apple">
+                                <div class="invalid-feedback">Podaj markę urządzenia</div>
+                            </div>
+                            <div class="col-sm-6">
+                                <label for="model_name" class="form-label small">Model</label>
+                                <input type="text" class="form-control" id="model_name" name="model_name"
+                                       placeholder="np. UE55TU7172, WAT28460PL">
+                            </div>
+                            <div class="col-sm-6">
+                                <label for="serial_number" class="form-label small">Numer seryjny (SN)</label>
+                                <input type="text" class="form-control" id="serial_number" name="serial_number"
+                                       placeholder="opcjonalnie">
+                            </div>
+                            <div class="col-12">
+                                <label for="problem_description" class="form-label small">Opis usterki *</label>
+                                <textarea class="form-control" id="problem_description" name="problem_description"
+                                          rows="4" required minlength="5"
+                                          placeholder="Opisz dokładnie problem: co się dzieje, od kiedy, jakie objawy…"></textarea>
+                                <div class="invalid-feedback">Opisz usterkę (min. 5 znaków)</div>
+                            </div>
+                            <div class="col-12">
+                                <label for="photo_paths" class="form-label small">Zdjęcia urządzenia</label>
+                                <input type="file" class="form-control" id="photo_paths" name="photo_paths"
+                                       accept="image/*" multiple>
+                                <div class="form-text text-muted">Opcjonalnie – dodaj zdjęcia urządzenia i tabliczki znamionowej.</div>
                             </div>
                         </div>
-                    </div>
 
-                    <!-- Formularz (widoczny po wybraniu slotu) -->
-                    <div id="booking-form" class="d-none mt-4 pt-3 border-top">
-                        <h6 class="fw-bold mb-3">3. Twoje dane</h6>
-                        <form id="booking-form-inner" novalidate>
+                        <!-- Termin -->
+                        <h6 class="fw-bold mb-3 border-bottom pb-2">2. Wybierz termin dostarczenia</h6>
+                        <div class="row g-4 mb-4">
+                            <div class="col-md-6">
+                                <div id="calendar"></div>
+                                <p class="text-muted small mt-2">
+                                    <i class="bi bi-circle-fill text-success" style="font-size: 0.6rem;"></i> Dostępne
+                                    <i class="bi bi-circle-fill text-muted ms-2" style="font-size: 0.6rem;"></i> Brak terminów
+                                </p>
+                            </div>
+                            <div class="col-md-6">
+                                <div id="slots-container" class="text-center text-muted py-5">
+                                    <i class="bi bi-hand-index-thumb display-6"></i>
+                                    <p class="mt-2">Wybierz datę, aby zobaczyć dostępne godziny</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Dane klienta -->
+                        <h6 class="fw-bold mb-3 border-bottom pb-2">3. Twoje dane</h6>
+                        <div class="row g-3 mb-4">
                             <input type="hidden" name="date" id="form-date">
                             <input type="hidden" name="time" id="form-time">
 
-                            <div class="row g-3">
-                                <div class="col-sm-6">
-                                    <label for="client_name" class="form-label small">Imię *</label>
-                                    <input type="text" class="form-control" id="client_name" name="client_name" required minlength="2"
-                                           placeholder="Jan">
-                                    <div class="invalid-feedback">Podaj imię (min. 2 znaki)</div>
-                                </div>
-                                <div class="col-sm-6">
-                                    <label for="client_surname" class="form-label small">Nazwisko *</label>
-                                    <input type="text" class="form-control" id="client_surname" name="client_surname" required minlength="2"
-                                           placeholder="Kowalski">
-                                    <div class="invalid-feedback">Podaj nazwisko (min. 2 znaki)</div>
-                                </div>
-                                <div class="col-sm-6">
-                                    <label for="client_phone" class="form-label small">Telefon *</label>
-                                    <input type="tel" class="form-control" id="client_phone" name="client_phone" required
-                                           placeholder="+48 123 456 789" pattern="[\d\s+()-]{9,}">
-                                    <div class="invalid-feedback">Podaj poprawny numer telefonu (min. 9 cyfr)</div>
-                                </div>
-                                <div class="col-sm-6">
-                                    <label for="client_email" class="form-label small">E-mail <span class="text-muted">(opcjonalny)</span></label>
-                                    <input type="email" class="form-control" id="client_email" name="client_email"
-                                           placeholder="jan@example.com">
-                                </div>
+                            <div class="col-sm-6">
+                                <label for="client_name" class="form-label small">Imię *</label>
+                                <input type="text" class="form-control" id="client_name" name="client_name" required minlength="2"
+                                       placeholder="Jan">
+                                <div class="invalid-feedback">Podaj imię (min. 2 znaki)</div>
                             </div>
-
-                            <div class="mt-3">
-                                {% if recaptcha_site_key %}
-                                    <div class="g-recaptcha mb-3" data-sitekey="{{ recaptcha_site_key }}"></div>
-                                {% endif %}
-                                <button type="submit" class="btn btn-primary w-100" id="book-btn">
-                                    <i class="bi bi-calendar-check"></i> Rezerwuj termin
-                                </button>
+                            <div class="col-sm-6">
+                                <label for="client_surname" class="form-label small">Nazwisko *</label>
+                                <input type="text" class="form-control" id="client_surname" name="client_surname" required minlength="2"
+                                       placeholder="Kowalski">
+                                <div class="invalid-feedback">Podaj nazwisko (min. 2 znaki)</div>
                             </div>
-                        </form>
-                    </div>
+                            <div class="col-sm-6">
+                                <label for="client_phone" class="form-label small">Telefon *</label>
+                                <input type="tel" class="form-control" id="client_phone" name="client_phone" required
+                                       placeholder="+48 123 456 789" pattern="[\d\s+()-]{9,}">
+                                <div class="invalid-feedback">Podaj poprawny numer telefonu (min. 9 cyfr)</div>
+                            </div>
+                            <div class="col-sm-6">
+                                <label for="client_email" class="form-label small">E-mail <span class="text-muted">(opcjonalny)</span></label>
+                                <input type="email" class="form-control" id="client_email" name="client_email"
+                                       placeholder="jan@example.com">
+                            </div>
+                        </div>
 
-                    <!-- Komunikat po rezerwacji -->
+                        <!-- Submit -->
+                        <div class="mt-3">
+                            {% if recaptcha_site_key %}
+                                <div class="g-recaptcha mb-3" data-sitekey="{{ recaptcha_site_key }}"></div>
+                            {% endif %}
+                            <button type="submit" class="btn btn-primary w-100" id="book-btn">
+                                <i class="bi bi-tools"></i> Zgłoś do naprawy
+                            </button>
+                        </div>
+                    </form>
+
+                    <!-- Komunikat po złożeniu -->
                     <div id="booking-success" class="d-none mt-4 pt-3 border-top text-center">
                         <i class="bi bi-check-circle-fill text-success display-4"></i>
-                        <h5 class="mt-2">Rezerwacja przyjęta!</h5>
+                        <h5 class="mt-2">Zlecenie przyjęte!</h5>
                         <p id="success-message" class="text-muted"></p>
                         <p id="payment-info" class="d-none small text-muted"></p>
-                        <button class="btn btn-outline-primary btn-sm mt-2" onclick="location.reload()">Umów kolejną wizytę</button>
+                        <button class="btn btn-outline-primary btn-sm mt-2" onclick="location.reload()">Zgłoś kolejny sprzęt</button>
                     </div>
                 </div>
             </div>
 
             <p class="text-center text-muted small mt-3">
                 <i class="bi bi-shield-check"></i>
-                Twoje dane są bezpieczne i wykorzystywane wyłącznie do celów rezerwacji.
+                Twoje dane są bezpieczne i wykorzystywane wyłącznie do celów serwisowych.
             </p>
         </div>
     </div>
@@ -116,7 +165,7 @@
             <div class="modal-body text-center py-4">
                 <i class="bi bi-credit-card text-primary display-4"></i>
                 <h5 class="mt-2">Zaliczka wymagana</h5>
-                <p class="text-muted small mb-3">Aby potwierdzić rezerwację, wymagana jest wpłata zaliczki.</p>
+                <p class="text-muted small mb-3">Aby potwierdzić przyjęcie zlecenia, wymagana jest wpłata zaliczki.</p>
                 <a href="#" id="payment-link" class="btn btn-primary w-100">
                     <i class="bi bi-credit-card"></i> Przejdź do płatności
                 </a>

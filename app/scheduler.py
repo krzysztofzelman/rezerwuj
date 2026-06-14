@@ -2,8 +2,8 @@
 Harmonogram zadań — APScheduler.
 Uruchamiany w lifespan aplikacji (main.py).
 Zadania:
-  - auto_complete_past_bookings: oznacza przeszłe rezerwacje jako zakończone
-  - send_reminder_emails: wysyła przypomnienia o rezerwacjach na następny dzień
+  - auto_complete_past_orders: oznacza przeszłe zlecenia jako zakończone
+  - send_reminder_emails: wysyła przypomnienia o zleceniach na następny dzień
 """
 import datetime
 import logging
@@ -12,34 +12,34 @@ from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.cron import CronTrigger
 
 from app.database import SessionLocal
-from app.models import Booking, Provider
+from app.models import Order, ServiceProvider
 from app.email_mock import send_booking_reminder_email
 
-logger = logging.getLogger("rezerwuj.scheduler")
+logger = logging.getLogger("servicehub.scheduler")
 
 scheduler = AsyncIOScheduler()
 
 
-def auto_complete_past_bookings():
-    """Oznacza przeszłe rezerwacje jako zakończone (codziennie 3:00)."""
+def auto_complete_past_orders():
+    """Oznacza przeszłe zlecenia jako zakończone (codziennie 3:00)."""
     db = SessionLocal()
     try:
         today = datetime.date.today()
-        past_bookings = (
-            db.query(Booking)
+        past_orders = (
+            db.query(Order)
             .filter(
-                Booking.booking_date < today,
-                Booking.status == "confirmed",
+                Order.booking_date < today,
+                Order.status == "confirmed",
             )
             .all()
         )
         count = 0
-        for b in past_bookings:
-            b.status = "completed"
+        for o in past_orders:
+            o.status = "completed"
             count += 1
         if count:
             db.commit()
-            logger.info("Auto-completed %d past booking(s)", count)
+            logger.info("Auto-completed %d past order(s)", count)
     except Exception as e:
         logger.error("Auto-complete error: %s", e)
     finally:
@@ -47,28 +47,28 @@ def auto_complete_past_bookings():
 
 
 def send_reminder_emails():
-    """Wysyła przypomnienia o rezerwacjach na następny dzień (codziennie 8:00)."""
+    """Wysyła przypomnienia o zleceniach na następny dzień (codziennie 8:00)."""
     db = SessionLocal()
     try:
         tomorrow = datetime.date.today() + datetime.timedelta(days=1)
         upcoming = (
-            db.query(Booking)
+            db.query(Order)
             .filter(
-                Booking.booking_date == tomorrow,
-                Booking.status == "confirmed",
-                Booking.client_email != "",
+                Order.booking_date == tomorrow,
+                Order.status == "confirmed",
+                Order.client_email != "",
             )
             .all()
         )
         count = 0
-        for b in upcoming:
-            provider = db.query(Provider).filter(Provider.id == b.provider_id).first()
-            if provider and b.client_email:
-                date_str = b.booking_date.strftime("%d.%m.%Y")
-                time_str = b.booking_time.strftime("%H:%M")
+        for o in upcoming:
+            provider = db.query(ServiceProvider).filter(ServiceProvider.id == o.provider_id).first()
+            if provider and o.client_email:
+                date_str = o.booking_date.strftime("%d.%m.%Y")
+                time_str = o.booking_time.strftime("%H:%M")
                 send_booking_reminder_email(
-                    b.client_email,
-                    b.client_name,
+                    o.client_email,
+                    o.client_name,
                     provider.name,
                     date_str,
                     time_str,
@@ -90,17 +90,17 @@ def start_scheduler():
         return
 
     scheduler.add_job(
-        auto_complete_past_bookings,
+        auto_complete_past_orders,
         CronTrigger(hour=3, minute=0),
         id="auto_complete",
-        name="Auto-complete past bookings",
+        name="Auto-complete past orders",
         replace_existing=True,
     )
     scheduler.add_job(
         send_reminder_emails,
         CronTrigger(hour=8, minute=0),
         id="send_reminders",
-        name="Send booking reminders",
+        name="Send order reminders",
         replace_existing=True,
     )
 

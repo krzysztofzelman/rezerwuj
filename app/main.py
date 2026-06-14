@@ -13,7 +13,7 @@ from sqlalchemy.orm import Session, selectinload
 
 from app.config import SITE_URL, STRIPE_WEBHOOK_SECRET, SECRET_KEY, ADMIN_PASSWORD
 from app.database import engine, Base, get_db, SessionLocal
-from app.models import Provider, WorkingHour, Service, Booking, BlockedSlot
+from app.models import ServiceProvider, WorkingHour, Service, Order, BlockedSlot
 from app.auth import decode_access_token
 from app.payments import handle_stripe_webhook, process_subscription_event, MOCK_MODE
 from app.csrf import verify_csrf
@@ -27,7 +27,7 @@ logging.basicConfig(
     format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
     datefmt="%Y-%m-%d %H:%M:%S",
 )
-logger = logging.getLogger("rezerwuj")
+logger = logging.getLogger("servicehub")
 
 # === Tworzenie tabel ===
 Base.metadata.create_all(bind=engine)
@@ -42,7 +42,7 @@ def _run_migrations():
         return
 
     inspector = sa_inspect(engine)
-    all_models = [Provider, WorkingHour, Service, Booking, BlockedSlot]
+    all_models = [ServiceProvider, WorkingHour, Service, Order, BlockedSlot]
 
     for model_cls in all_models:
         table_name = model_cls.__tablename__
@@ -78,7 +78,7 @@ _run_migrations()
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Uruchamiane przy starcie i zamknięciu aplikacji."""
-    logger.info(f"🚀 Rezerwuj SaaS uruchomiony na {SITE_URL}")
+    logger.info(f"🚀 ServiceHub uruchomiony na {SITE_URL}")
     logger.info(f"📧 Tryb SMS: {'MOCK' if __import__('app.config', fromlist=['']).SMS_MOCK else 'PRODUKCYJNY'}")
     logger.info(f"📧 Tryb E-mail: {'MOCK' if __import__('app.config', fromlist=['']).EMAIL_MOCK else 'PRODUKCYJNY (SMTP)'}")
 
@@ -102,7 +102,7 @@ async def lifespan(app: FastAPI):
     start_scheduler()
 
     yield
-    logger.info("👋 Rezerwuj SaaS zatrzymany")
+    logger.info("👋 ServiceHub zatrzymany")
 
     stop_scheduler()
 
@@ -114,9 +114,9 @@ def _seed_admin():
 
     db = SessionLocal()
     try:
-        admin = db.query(Provider).filter(Provider.email == ADMIN_EMAIL).first()
+        admin = db.query(ServiceProvider).filter(ServiceProvider.email == ADMIN_EMAIL).first()
         if not admin:
-            admin = Provider(
+            admin = ServiceProvider(
                 email=ADMIN_EMAIL,
                 password_hash=hash_password(ADMIN_PASSWORD),
                 name="Administrator",
@@ -143,8 +143,8 @@ def _seed_admin():
 
 
 app = FastAPI(
-    title="Rezerwuj — System Rezerwacji dla Usługodawców",
-    description="SaaS do zarządzania rezerwacjami dla małych firm usługowych",
+    title="ServiceHub — System Zarządzania Serwisem RTV/AGD",
+    description="SaaS do zarządzania przyjęciami serwisowymi dla warsztatów RTV/AGD",
     version="1.0.0",
     lifespan=lifespan,
 )
@@ -281,14 +281,14 @@ async def cookie_auth_middleware(request: Request, call_next):
                 db = SessionLocal()
                 try:
                     provider = (
-                        db.query(Provider)
+                        db.query(ServiceProvider)
                         .options(
-                            selectinload(Provider.working_hours),
-                            selectinload(Provider.bookings),
-                            selectinload(Provider.blocked_slots),
-                            selectinload(Provider.services),
+                            selectinload(ServiceProvider.working_hours),
+                            selectinload(ServiceProvider.orders),
+                            selectinload(ServiceProvider.blocked_slots),
+                            selectinload(ServiceProvider.services),
                         )
-                        .filter(Provider.id == provider_id)
+                        .filter(ServiceProvider.id == provider_id)
                         .first()
                     )
                     request.state.provider = provider

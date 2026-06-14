@@ -9,7 +9,7 @@ from sqlalchemy.orm import Session
 
 from app.config import SECRET_KEY, JWT_ALGORITHM, JWT_EXPIRY_HOURS
 from app.database import get_db
-from app.models import Provider
+from app.models import ServiceProvider
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 security = HTTPBearer(auto_error=False)
@@ -53,7 +53,7 @@ def decode_access_token(token: str) -> Optional[int]:
 def get_current_provider(
     credentials: Optional[HTTPAuthorizationCredentials] = Depends(security),
     db: Session = Depends(get_db),
-) -> Provider:
+) -> ServiceProvider:
     """FastAPI dependency — zwraca aktualnie zalogowanego usługodawcę."""
     if credentials is None:
         raise HTTPException(
@@ -70,7 +70,7 @@ def get_current_provider(
             headers={"WWW-Authenticate": "Bearer"},
         )
 
-    provider = db.query(Provider).filter(Provider.id == provider_id).first()
+    provider = db.query(ServiceProvider).filter(ServiceProvider.id == provider_id).first()
     if provider is None:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -81,7 +81,7 @@ def get_current_provider(
     return provider
 
 
-def require_active_subscription(provider: Provider = Depends(get_current_provider)) -> Provider:
+def require_active_subscription(provider: ServiceProvider = Depends(get_current_provider)) -> ServiceProvider:
     """Sprawdza, czy usługodawca ma aktywną subskrypcję lub trial."""
     if provider.subscription_status == "canceled":
         raise HTTPException(

@@ -211,3 +211,85 @@ class ServiceCreate(BaseModel):
         if v < 15:
             raise ValueError("Czas trwania musi wynosić co najmniej 15 minut")
         return v
+
+
+# === Przyjęcie serwisowe (Order) ===
+
+VALID_DEVICE_TYPES = [
+    "pralka", "lodówka", "zamrażarka", "piekarnik", "kuchenka",
+    "płyta_indukcyjna", "zmywarka", "mikrofalówka", "ekspres_do_kawy",
+    "odkurzacz", "telewizor", "monitor", "laptop", "konsola",
+    "słuchawki", "głośnik", "inny",
+]
+
+
+class OrderCreate(BaseModel):
+    """Tworzenie nowego przyjęcia serwisowego (z publicznego formularza)."""
+    client_name: str
+    client_surname: str
+    client_phone: str
+    client_email: str = ""
+    device_type: str = "inny"
+    brand: str = ""
+    model_name: str = ""
+    serial_number: str = ""
+    problem_description: str = ""
+
+    @field_validator("client_name")
+    @classmethod
+    def validate_client_name(cls, v: str) -> str:
+        v = v.strip()
+        if len(v) < 2:
+            raise ValueError("Imię musi mieć co najmniej 2 znaki")
+        return v
+
+    @field_validator("client_surname")
+    @classmethod
+    def validate_client_surname(cls, v: str) -> str:
+        v = v.strip()
+        if len(v) < 2:
+            raise ValueError("Nazwisko musi mieć co najmniej 2 znaki")
+        return v
+
+    @field_validator("client_phone")
+    @classmethod
+    def validate_client_phone(cls, v: str) -> str:
+        v = v.strip()
+        digits = re.sub(r"\D", "", v)
+        if len(digits) < 9:
+            raise ValueError("Numer telefonu musi mieć co najmniej 9 cyfr")
+        return v
+
+    @field_validator("device_type")
+    @classmethod
+    def validate_device_type(cls, v: str) -> str:
+        v = v.strip().lower()
+        if v and v not in VALID_DEVICE_TYPES:
+            raise ValueError(f"Nieprawidłowy typ urządzenia. Dozwolone: {', '.join(VALID_DEVICE_TYPES)}")
+        return v
+
+    @field_validator("problem_description")
+    @classmethod
+    def validate_problem(cls, v: str) -> str:
+        v = v.strip()
+        if len(v) < 5:
+            raise ValueError("Opis problemu musi mieć co najmniej 5 znaków")
+        return v
+
+
+class OrderUpdate(BaseModel):
+    """Aktualizacja przyjęcia serwisowego (z dashboardu)."""
+    status_order: Optional[str] = None  # pending | confirmed | in_progress | completed | cancelled
+    repair_cost: Optional[int] = None    # grosze
+    notes: Optional[str] = None          # notatka CRM
+    provider_notes: Optional[str] = None # notatki serwisowe
+    paid: Optional[bool] = None
+
+    @field_validator("status_order")
+    @classmethod
+    def validate_status(cls, v: Optional[str]) -> Optional[str]:
+        if v is not None:
+            valid = {"pending", "confirmed", "in_progress", "completed", "cancelled"}
+            if v not in valid:
+                raise ValueError(f"Nieprawidłowy status. Dozwolone: {', '.join(sorted(valid))}")
+        return v

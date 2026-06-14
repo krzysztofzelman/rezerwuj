@@ -16,9 +16,9 @@ from app.config import (
     SUBSCRIPTION_PRICE_PLN,
     SITE_URL,
 )
-from app.models import Provider, Booking
+from app.models import ServiceProvider, Order
 
-logger = logging.getLogger("rezerwuj.payments")
+logger = logging.getLogger("servicehub.payments")
 
 stripe.api_key = STRIPE_SECRET_KEY
 
@@ -35,7 +35,7 @@ def is_stripe_configured() -> bool:
 
 # --- Depozyty / zaliczki ---
 
-def create_deposit_checkout(booking: Booking, provider: Provider) -> Optional[str]:
+def create_deposit_checkout(booking: Order, provider: ServiceProvider) -> Optional[str]:
     """
     Tworzy Stripe Checkout Session dla zaliczki.
     Zwraca URL do checkoutu lub None w trybie mock.
@@ -79,7 +79,7 @@ def create_deposit_checkout(booking: Booking, provider: Provider) -> Optional[st
 
 # --- Subskrypcje ---
 
-def create_subscription_checkout(provider: Provider) -> Optional[str]:
+def create_subscription_checkout(provider: ServiceProvider) -> Optional[str]:
     """
     Tworzy Stripe Checkout Session dla subskrypcji miesięcznej.
     Zwraca URL do checkoutu lub None.
@@ -122,7 +122,7 @@ def create_subscription_checkout(provider: Provider) -> Optional[str]:
         return None
 
 
-def cancel_subscription(provider: Provider) -> bool:
+def cancel_subscription(provider: ServiceProvider) -> bool:
     """Anuluje subskrypcję Stripe."""
     if MOCK_MODE:
         logger.info(f"=== MOCK Anulowanie subskrypcji dla {provider.email} ===")
@@ -179,7 +179,7 @@ def process_subscription_event(event: dict, db: Session) -> None:
             subscription_id = data.get("subscription")
             customer_id = data.get("customer")
 
-            provider = db.query(Provider).filter(Provider.id == provider_id).first()
+            provider = db.query(ServiceProvider).filter(ServiceProvider.id == provider_id).first()
             if provider:
                 provider.stripe_subscription_id = subscription_id
                 provider.stripe_customer_id = customer_id
@@ -190,8 +190,8 @@ def process_subscription_event(event: dict, db: Session) -> None:
     elif event_type == "invoice.paid":
         subscription_id = data.get("subscription")
         provider = (
-            db.query(Provider)
-            .filter(Provider.stripe_subscription_id == subscription_id)
+            db.query(ServiceProvider)
+            .filter(ServiceProvider.stripe_subscription_id == subscription_id)
             .first()
         )
         if provider:
@@ -203,8 +203,8 @@ def process_subscription_event(event: dict, db: Session) -> None:
     elif event_type == "invoice.payment_failed":
         subscription_id = data.get("subscription")
         provider = (
-            db.query(Provider)
-            .filter(Provider.stripe_subscription_id == subscription_id)
+            db.query(ServiceProvider)
+            .filter(ServiceProvider.stripe_subscription_id == subscription_id)
             .first()
         )
         if provider:
@@ -215,8 +215,8 @@ def process_subscription_event(event: dict, db: Session) -> None:
     elif event_type == "customer.subscription.deleted":
         subscription_id = data.get("id")
         provider = (
-            db.query(Provider)
-            .filter(Provider.stripe_subscription_id == subscription_id)
+            db.query(ServiceProvider)
+            .filter(ServiceProvider.stripe_subscription_id == subscription_id)
             .first()
         )
         if provider:

@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}{{ provider.name }} — Rezerwuj{% endblock %}
+{% block title %}{{ provider.name }} — ServiceHub{% endblock %}
 {% block content %}
 <div class="container min-vh-100 d-flex align-items-center justify-content-center">
     <div class="text-center">
@@ -9,9 +9,9 @@
         <h1 class="h3">{{ provider.name }}</h1>
         <p class="text-muted">
             {% if provider.subscription_status == 'canceled' or not provider.is_active %}
-                Rezerwacje online są tymczasowo niedostępne.
+                Przyjmowanie zleceń online jest tymczasowo niedostępne.
             {% else %}
-                Usługodawca nie przyjmuje obecnie rezerwacji online.
+                Serwis nie przyjmuje obecnie zleceń online.
             {% endif %}
         </p>
         <p class="small text-muted">Spróbuj ponownie później lub skontaktuj się bezpośrednio.</p>

@@ -7,7 +7,7 @@ from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app.models import Provider, WorkingHour, Booking, BlockedSlot, Service
+from app.models import ServiceProvider, WorkingHour, Order, BlockedSlot, Service
 from app.schemas import (
     SettingsUpdate,
     HoursUpdate,
@@ -22,14 +22,14 @@ from app.payments import (
 from app.ics_export import generate_booking_ics
 from app.config import SITE_URL, TRIAL_DAYS
 
-logger = logging.getLogger("rezerwuj.dashboard")
+logger = logging.getLogger("servicehub.dashboard")
 router = APIRouter()
 templates = Jinja2Templates(directory="app/templates")
 
 
 # ===== Helper =====
 
-def _get_provider(request: Request) -> Provider:
+def _get_provider(request: Request) -> ServiceProvider:
     """Pobiera provider z request.state (ustawiony przez middleware w main.py)."""
     provider = getattr(request.state, "provider", None)
     if not provider:
@@ -60,13 +60,13 @@ def dashboard_home(request: Request):
 
     # Nadchodzące rezerwacje (dziś i w przyszłości)
     upcoming = (
-        db.query(Booking)
+        db.query(Order)
         .filter(
-            Booking.provider_id == provider.id,
-            Booking.booking_date >= today,
-            Booking.status == "confirmed",
+            Order.provider_id == provider.id,
+            Order.booking_date >= today,
+            Order.status == "confirmed",
         )
-        .order_by(Booking.booking_date, Booking.booking_time)
+        .order_by(Order.booking_date, Order.booking_time)
         .limit(20)
         .all()
     )
@@ -78,16 +78,16 @@ def dashboard_home(request: Request):
 
     # Statystyki
     total_bookings = (
-        db.query(Booking)
-        .filter(Booking.provider_id == provider.id)
+        db.query(Order)
+        .filter(Order.provider_id == provider.id)
         .count()
     )
     completed_bookings = (
-        db.query(Booking)
+        db.query(Order)
         .filter(
-            Booking.provider_id == provider.id,
-            Booking.status == "confirmed",
-            Booking.booking_date < today,
+            Order.provider_id == provider.id,
+            Order.status == "confirmed",
+            Order.booking_date < today,
         )
         .count()
     )
@@ -114,9 +114,9 @@ def bookings_list(request: Request):
     db = next(get_db())
 
     bookings = (
-        db.query(Booking)
-        .filter(Booking.provider_id == provider.id)
-        .order_by(Booking.booking_date.desc(), Booking.booking_time.desc())
+        db.query(Order)
+        .filter(Order.provider_id == provider.id)
+        .order_by(Order.booking_date.desc(), Order.booking_time.desc())
         .all()
     )
 
@@ -137,10 +137,10 @@ def cancel_booking(booking_id: int, request: Request, db: Session = Depends(get_
     """Anulowanie rezerwacji."""
     provider = _get_provider(request)
     booking = (
-        db.query(Booking)
+        db.query(Order)
         .filter(
-            Booking.id == booking_id,
-            Booking.provider_id == provider.id,
+            Order.id == booking_id,
+            Order.provider_id == provider.id,
         )
         .first()
     )
@@ -158,10 +158,10 @@ def complete_booking(booking_id: int, request: Request, db: Session = Depends(ge
     """Oznaczenie rezerwacji jako zakończonej."""
     provider = _get_provider(request)
     booking = (
-        db.query(Booking)
+        db.query(Order)
         .filter(
-            Booking.id == booking_id,
-            Booking.provider_id == provider.id,
+            Order.id == booking_id,
+            Order.provider_id == provider.id,
         )
         .first()
     )
@@ -179,10 +179,10 @@ async def update_booking_note(booking_id: int, request: Request, db: Session = D
     """Zapisuje notatkę o kliencie w rezerwacji (CRM)."""
     provider = _get_provider(request)
     booking = (
-        db.query(Booking)
+        db.query(Order)
         .filter(
-            Booking.id == booking_id,
-            Booking.provider_id == provider.id,
+            Order.id == booking_id,
+            Order.provider_id == provider.id,
         )
         .first()
     )
@@ -202,9 +202,9 @@ def bookings_export_csv(request: Request, db: Session = Depends(get_db)):
     provider = _get_provider(request)
 
     bookings = (
-        db.query(Booking)
-        .filter(Booking.provider_id == provider.id)
-        .order_by(Booking.booking_date.desc(), Booking.booking_time.desc())
+        db.query(Order)
+        .filter(Order.provider_id == provider.id)
+        .order_by(Order.booking_date.desc(), Order.booking_time.desc())
         .all()
     )
 
@@ -237,7 +237,7 @@ def bookings_export_csv(request: Request, db: Session = Depends(get_db)):
 
     csv_content = "\r\n".join(lines)
 
-    filename = f"rezerwacje_{datetime.date.today().isoformat()}.csv"
+    filename = f"zlecenia_{datetime.date.today().isoformat()}.csv"
     return Response(
         content=csv_content.encode("utf-8-sig"),  # BOM dla polskich znaków w Excelu
         media_type="text/csv; charset=utf-8-sig",
@@ -255,8 +255,8 @@ def booking_export_ics(
     provider = _get_provider(request)
 
     booking = (
-        db.query(Booking)
-        .filter(Booking.id == booking_id, Booking.provider_id == provider.id)
+        db.query(Order)
+        .filter(Order.id == booking_id, Order.provider_id == provider.id)
         .first()
     )
     if not booking:
@@ -607,21 +607,21 @@ def calendar_events(
     end_date = None
 
     # Rezerwacje
-    bookings_query = db.query(Booking).filter(
-        Booking.provider_id == provider.id,
+    bookings_query = db.query(Order).filter(
+        Order.provider_id == provider.id,
     )
 
     if start:
         try:
             start_date = datetime.date.fromisoformat(start[:10])
-            bookings_query = bookings_query.filter(Booking.booking_date >= start_date)
+            bookings_query = bookings_query.filter(Order.booking_date >= start_date)
         except ValueError:
             pass
 
     if end:
         try:
             end_date = datetime.date.fromisoformat(end[:10])
-            bookings_query = bookings_query.filter(Booking.booking_date <= end_date)
+            bookings_query = bookings_query.filter(Order.booking_date <= end_date)
         except ValueError:
             pass
 
@@ -631,7 +631,7 @@ def calendar_events(
         "cancelled": "#6c757d",
     }
 
-    for b in bookings_query.order_by(Booking.booking_date, Booking.booking_time).all():
+    for b in bookings_query.order_by(Order.booking_date, Order.booking_time).all():
         start_dt = datetime.datetime.combine(b.booking_date, b.booking_time)
         end_dt = start_dt + datetime.timedelta(minutes=b.duration)
 

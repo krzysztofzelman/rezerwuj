@@ -8,13 +8,13 @@ from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.deps import rate_limit_strict
-from app.models import Provider, PasswordResetToken
+from app.models import ServiceProvider, PasswordResetToken
 from app.schemas import RegisterRequest, LoginRequest
 from app.auth import hash_password, verify_password, create_access_token
 from app.config import TRIAL_DAYS, SITE_URL
 from app.email_mock import send_password_reset_email
 
-logger = logging.getLogger("rezerwuj.auth")
+logger = logging.getLogger("servicehub.auth")
 router = APIRouter(prefix="/auth", tags=["auth"])
 templates = Jinja2Templates(directory="app/templates")
 
@@ -71,7 +71,7 @@ async def register(
         )
 
     # Sprawdź czy email już istnieje
-    existing = db.query(Provider).filter(Provider.email == reg_data.email).first()
+    existing = db.query(ServiceProvider).filter(ServiceProvider.email == reg_data.email).first()
     if existing:
         return templates.TemplateResponse(
             "dashboard/register.html",
@@ -79,7 +79,7 @@ async def register(
         )
 
     # Sprawdź czy slug już istnieje
-    existing_slug = db.query(Provider).filter(Provider.slug == reg_data.slug).first()
+    existing_slug = db.query(ServiceProvider).filter(ServiceProvider.slug == reg_data.slug).first()
     if existing_slug:
         return templates.TemplateResponse(
             "dashboard/register.html",
@@ -94,7 +94,7 @@ async def register(
     today = datetime.date.today()
     trial_end_date = today + datetime.timedelta(days=TRIAL_DAYS)
 
-    provider = Provider(
+    provider = ServiceProvider(
         email=reg_data.email,
         password_hash=hash_password(reg_data.password),
         name=reg_data.name,
@@ -120,7 +120,7 @@ async def register(
     return response
 
 
-def _create_default_hours(db: Session, provider: Provider) -> None:
+def _create_default_hours(db: Session, provider: ServiceProvider) -> None:
     """Tworzy domyślne godziny pracy: pon-pt 9:00-17:00 z przerwą 12:00-13:00."""
     from app.models import WorkingHour
 
@@ -176,8 +176,8 @@ async def login(
         )
 
     provider = (
-        db.query(Provider)
-        .filter(Provider.email == login_data.email)
+        db.query(ServiceProvider)
+        .filter(ServiceProvider.email == login_data.email)
         .first()
     )
 
@@ -224,7 +224,7 @@ async def password_reset_request(
             },
         )
 
-    provider = db.query(Provider).filter(Provider.email == email).first()
+    provider = db.query(ServiceProvider).filter(ServiceProvider.email == email).first()
 
     # Zawsze zwracaj sukces, nawet jeśli e-mail nie istnieje (bezpieczeństwo)
     if provider:
@@ -342,7 +342,7 @@ async def password_reset_confirm(
             },
         )
 
-    provider = db.query(Provider).filter(Provider.id == reset_token.provider_id).first()
+    provider = db.query(ServiceProvider).filter(ServiceProvider.id == reset_token.provider_id).first()
     if not provider:
         return templates.TemplateResponse(
             "dashboard/reset_password_request.html",

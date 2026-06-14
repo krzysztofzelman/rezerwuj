@@ -4,7 +4,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # === Aplikacja ===
-DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./rezerwuj.db")
+DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./servicehub.db")
 SECRET_KEY = os.getenv("SECRET_KEY", "")
 JWT_ALGORITHM = os.getenv("JWT_ALGORITHM", "HS256")
 JWT_EXPIRY_HOURS = 72
@@ -19,7 +19,7 @@ SUBSCRIPTION_PRICE_PLN = int(os.getenv("SUBSCRIPTION_PRICE_PLN", "4900"))  # gro
 
 # === SMS ===
 SMS_API_KEY = os.getenv("SMS_API_KEY", "")
-SMS_SENDER = os.getenv("SMS_SENDER", "Rezerwuj")
+SMS_SENDER = os.getenv("SMS_SENDER", "ServiceHub")
 SMS_MOCK = os.getenv("SMS_MOCK", "true").lower() == "true"
 
 # === E-mail (SMTP) ===
@@ -27,7 +27,7 @@ SMTP_HOST = os.getenv("SMTP_HOST", "")
 SMTP_PORT = int(os.getenv("SMTP_PORT", "587"))
 SMTP_USER = os.getenv("SMTP_USER", "")
 SMTP_PASSWORD = os.getenv("SMTP_PASSWORD", "")
-SMTP_FROM = os.getenv("SMTP_FROM", "Rezerwuj <noreply@rezerwuj.kzelman.pl>")
+SMTP_FROM = os.getenv("SMTP_FROM", "ServiceHub <noreply@servicehub.app>")
 EMAIL_MOCK = os.getenv("EMAIL_MOCK", "true").lower() == "true"
 
 # === reCAPTCHA ===
@@ -42,7 +42,7 @@ TRIAL_DAYS = int(os.getenv("TRIAL_DAYS", "14"))
 MAX_BOOKING_DAYS_AHEAD = int(os.getenv("MAX_BOOKING_DAYS_AHEAD", "60"))
 
 # === Admin ===
-ADMIN_EMAIL = os.getenv("ADMIN_EMAIL", "admin@rezerwuj.pl")
+ADMIN_EMAIL = os.getenv("ADMIN_EMAIL", "admin@servicehub.app")
 ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD", "")
 
 # === Stripe Product price (fallback) ===

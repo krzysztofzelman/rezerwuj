@@ -1,5 +1,5 @@
 """
-Test aplikacji Rezerwuj.
+Test aplikacji ServiceHub.
 Uruchom: python test_app.py (gdy app działa na localhost:8000)
 """
 import urllib.request, urllib.parse
@@ -50,7 +50,7 @@ def parse_token(hdrs):
 
 
 def main():
-    print("=== Testowanie aplikacji Rezerwuj ===\n")
+    print("=== Testowanie aplikacji ServiceHub ===\n")
 
     # 1. Login page
     print("1. Strona logowania...", end=" ")
@@ -88,10 +88,10 @@ def main():
     print("OK (przekierowanie)")
 
     # 5. Public booking page
-    print("5. Strona rezerwacji...", end=" ")
+    print("5. Strona zgłaszania sprzętu...", end=" ")
     s, h, body = req("GET", "/fryzjer-janek")
     assert s == 200
-    assert "Wybierz dogodny termin" in body
+    assert "Zgłoś sprzęt" in body
     print("OK")
 
     # 6. 404
@@ -161,7 +161,7 @@ def main():
     print("OK")
 
     print(f"\n{'='*40}")
-    print(f"✅ Wszystkie 13 testów przeszło pomyślnie!")
+    print(f"✅ Wszystkie testy przeszły pomyślnie!")
     print(f"{'='*40}")
     return 0
 

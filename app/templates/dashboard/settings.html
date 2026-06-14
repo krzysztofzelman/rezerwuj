@@ -38,7 +38,7 @@
                         <input class="form-check-input" type="checkbox" name="require_deposit" id="require_deposit"
                                {% if provider.require_deposit %}checked{% endif %}>
                         <label class="form-check-label small" for="require_deposit">
-                            Wymagaj zaliczki przy rezerwacji
+                            Wymagaj zaliczki przy składaniu zlecenia
                         </label>
                     </div>
                     <div class="mb-3" id="deposit_amount_group" style="{% if not provider.require_deposit %}display:none{% endif %}">

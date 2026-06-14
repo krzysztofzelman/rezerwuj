@@ -7,15 +7,15 @@ from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session, selectinload
 
 from app.database import get_db
-from app.models import Provider, Booking
+from app.models import ServiceProvider, Order
 from app.config import SITE_URL
 
-logger = logging.getLogger("rezerwuj.admin")
+logger = logging.getLogger("servicehub.admin")
 router = APIRouter()
 templates = Jinja2Templates(directory="app/templates")
 
 
-def _get_admin(request: Request) -> Provider:
+def _get_admin(request: Request) -> ServiceProvider:
     """Pobiera providera i sprawdza czy jest adminem."""
     provider = getattr(request.state, "provider", None)
     if not provider or not provider.is_admin:
@@ -29,9 +29,9 @@ def admin_home(request: Request, db: Session = Depends(get_db)):
     admin = _get_admin(request)
 
     users = (
-        db.query(Provider)
-        .options(selectinload(Provider.bookings))
-        .order_by(Provider.created_at.desc())
+        db.query(ServiceProvider)
+        .options(selectinload(ServiceProvider.bookings))
+        .order_by(ServiceProvider.created_at.desc())
         .all()
     )
 
@@ -82,7 +82,7 @@ def toggle_user_active(user_id: int, request: Request, db: Session = Depends(get
     """Aktywuje/dezaktywuje użytkownika."""
     admin = _get_admin(request)
 
-    user = db.query(Provider).filter(Provider.id == user_id).first()
+    user = db.query(ServiceProvider).filter(ServiceProvider.id == user_id).first()
     if not user:
         raise HTTPException(status_code=404, detail="Użytkownik nie istnieje")
     if user.is_admin:
@@ -102,7 +102,7 @@ def activate_subscription(user_id: int, request: Request, db: Session = Depends(
     """Ręczne przedłużenie subskrypcji użytkownika o 30 dni (dla sprzedaży poza aplikacją)."""
     admin = _get_admin(request)
 
-    user = db.query(Provider).filter(Provider.id == user_id).first()
+    user = db.query(ServiceProvider).filter(ServiceProvider.id == user_id).first()
     if not user:
         raise HTTPException(status_code=404, detail="Użytkownik nie istnieje")
 

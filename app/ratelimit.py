@@ -12,7 +12,7 @@ from fastapi import HTTPException, Request
 
 from app.config import REDIS_URL
 
-logger = logging.getLogger("rezerwuj.ratelimit")
+logger = logging.getLogger("servicehub.ratelimit")
 
 
 class RateLimiter:

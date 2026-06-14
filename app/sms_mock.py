@@ -8,7 +8,7 @@ import httpx
 
 from app.config import SMS_API_KEY, SMS_SENDER, SMS_MOCK
 
-logger = logging.getLogger("rezerwuj.sms")
+logger = logging.getLogger("servicehub.sms")
 
 SMSAPI_URL = "https://api.smsapi.pl/sms.do"
 
@@ -68,23 +68,23 @@ def send_sms(phone: str, message: str) -> bool:
 
 
 def send_booking_confirmation(phone: str, provider_name: str, date: str, time: str) -> bool:
-    """Wysyła potwierdzenie rezerwacji SMS-em do klienta."""
+    """Wysyła potwierdzenie przyjęcia zlecenia serwisowego SMS-em do klienta."""
     message = (
-        f"Potwierdzenie rezerwacji u {provider_name}.\n"
+        f"Potwierdzenie przyjęcia zlecenia serwisowego – {provider_name}.\n"
         f"Data: {date}\n"
         f"Godzina: {time}\n"
-        f"Dziękujemy!"
+        f"Skontaktujemy się po diagnozie."
     )
     return send_sms(phone, message)
 
 
 def send_booking_reminder(phone: str, provider_name: str, date: str, time: str) -> bool:
-    """Wysyła przypomnienie o rezerwacji SMS-em do klienta."""
+    """Wysyła przypomnienie o zleceniu serwisowym SMS-em do klienta."""
     message = (
-        f"Przypomnienie: masz rezerwację u {provider_name}\n"
+        f"Przypomnienie: Twoje zlecenie serwisowe w {provider_name}\n"
         f"Data: {date}\n"
         f"Godzina: {time}\n"
-        f"Do zobaczenia!"
+        f"Status naprawy możesz sprawdzić online."
     )
     return send_sms(phone, message)
 
@@ -98,10 +98,10 @@ def send_new_booking_notification_to_provider_sms(
     time: str,
     company_name: str = "",
 ) -> bool:
-    """Wysyła SMS do usługodawcy o nowej rezerwacji."""
+    """Wysyła SMS do serwisu o nowym zleceniu."""
     biz_name = company_name or provider_name
     message = (
-        f"Nowa rezerwacja!\n"
+        f"Nowe zlecenie serwisowe!\n"
         f"Klient: {client_name} {client_surname}\n"
         f"Data: {date}\n"
         f"Godzina: {time}\n"

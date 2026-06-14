@@ -1,7 +1,7 @@
 {% extends "dashboard/base_dashboard.html" %}
-{% block title %}Rezerwacje — {{ provider.name }}{% endblock %}
+{% block title %}Zlecenia — {{ provider.name }}{% endblock %}
 {% block dashboard_content %}
-<h1 class="h4 mb-4">Wszystkie rezerwacje
+<h1 class="h4 mb-4">Wszystkie zlecenia serwisowe
     <a href="/dashboard/rezerwacje/eksport" class="btn btn-outline-success btn-sm ms-2">
         <i class="bi bi-download"></i> Eksport CSV
     </a>
@@ -12,14 +12,14 @@
         <table class="table table-hover align-middle">
             <thead class="table-light">
                 <tr>
-                    <th>Data</th>
+                    <th>Data przyjęcia</th>
                     <th>Godzina</th>
                     <th>Klient</th>
                     <th>Telefon</th>
-                    <th>Czas</th>
+                    <th>Sprzęt</th>
                     <th>Status</th>
                     <th>Płatność</th>
-                    <th>Notatka</th>
+                    <th>Notatka serwisowa</th>
                     <th>Akcje</th>
                 </tr>
             </thead>
@@ -35,14 +35,26 @@
                             {% endif %}
                         </td>
                         <td>{{ b.client_phone }}</td>
-                        <td>{{ b.duration }} min</td>
+                        <td>
+                            <strong>{{ b.brand }}</strong>
+                            {% if b.model_name %}
+                                <br><small class="text-muted">{{ b.model_name }}</small>
+                            {% endif %}
+                            {% if b.serial_number %}
+                                <br><small class="text-muted">SN: {{ b.serial_number }}</small>
+                            {% endif %}
+                        </td>
                         <td>
                             {% if b.status == 'confirmed' %}
-                                <span class="badge bg-success">Potwierdzona</span>
+                                <span class="badge bg-success">Przyjęte</span>
                             {% elif b.status == 'cancelled' %}
-                                <span class="badge bg-danger">Anulowana</span>
+                                <span class="badge bg-danger">Anulowane</span>
                             {% elif b.status == 'completed' %}
-                                <span class="badge bg-secondary">Zakończona</span>
+                                <span class="badge bg-secondary">Zakończone</span>
+                            {% elif b.status == 'in_progress' %}
+                                <span class="badge bg-warning text-dark">W naprawie</span>
+                            {% elif b.status == 'pending' %}
+                                <span class="badge bg-info text-dark">Oczekuje</span>
                             {% endif %}
                         </td>
                         <td>
@@ -56,6 +68,8 @@
                             <div class="note-view-{{ b.id }}">
                                 {% if b.notes %}
                                     <small class="text-muted">{{ b.notes[:80] }}{% if b.notes|length > 80 %}…{% endif %}</small>
+                                {% elif b.provider_notes %}
+                                    <small class="text-muted">{{ b.provider_notes[:80] }}{% if b.provider_notes|length > 80 %}…{% endif %}</small>
                                 {% else %}
                                     <small class="text-muted fst-italic">—</small>
                                 {% endif %}
@@ -66,7 +80,7 @@
                             <div class="note-edit-{{ b.id }}" style="display:none;">
                                 <form method="POST" action="/dashboard/rezerwacje/{{ b.id }}/notatka" onsubmit="return saveNote({{ b.id }})">
                                     <div class="input-group input-group-sm">
-                                        <textarea name="notes" rows="2" class="form-control form-control-sm" style="font-size:0.8rem;">{{ b.notes }}</textarea>
+                                        <textarea name="notes" rows="2" class="form-control form-control-sm" style="font-size:0.8rem;">{{ b.notes or b.provider_notes }}</textarea>
                                         <button class="btn btn-sm btn-outline-success" type="submit"><i class="bi bi-check"></i></button>
                                         <button class="btn btn-sm btn-outline-secondary" type="button" onclick="toggleNote({{ b.id }})"><i class="bi bi-x"></i></button>
                                     </div>
@@ -80,13 +94,13 @@
                             </a>
                             {% if b.status == 'confirmed' %}
                                 <form method="POST" action="/dashboard/rezerwacje/{{ b.id }}/zakoncz" class="d-inline">
-                                    <button class="btn btn-sm btn-outline-success" title="Oznacz jako zakończoną">
+                                    <button class="btn btn-sm btn-outline-success" title="Oznacz jako zakończone">
                                         <i class="bi bi-check-lg"></i>
                                     </button>
                                 </form>
                                 <form method="POST" action="/dashboard/rezerwacje/{{ b.id }}/anuluj" class="d-inline"
-                                      onsubmit="return confirm('Anulować rezerwację {{ b.client_name }} {{ b.client_surname }} na {{ b.booking_date.strftime('%d.%m') }} godz. {{ b.booking_time.strftime('%H:%M') }}?')">
-                                    <button class="btn btn-sm btn-outline-danger" title="Anuluj rezerwację">
+                                      onsubmit="return confirm('Anulować zlecenie {{ b.client_name }} {{ b.client_surname }} na {{ b.booking_date.strftime('%d.%m') }} godz. {{ b.booking_time.strftime('%H:%M') }}?')">
+                                    <button class="btn btn-sm btn-outline-danger" title="Anuluj zlecenie">
                                         <i class="bi bi-x-lg"></i>
                                     </button>
                                 </form>
@@ -106,16 +120,15 @@
             document.querySelector('.note-edit-' + id).style.display === 'none' ? '' : 'none';
     }
     function saveNote(id) {
-        // formularz sam się submituje przez POST — tylko ukrywamy widok
         document.querySelector('.note-view-' + id).style.display = 'none';
         return true;
     }
     </script>
 {% else %}
     <div class="text-center py-5 text-muted">
-        <i class="bi bi-calendar-plus display-4"></i>
-        <p class="mt-2">Brak rezerwacji.</p>
-        <p class="small">Udostępnij swój link klientom, aby zaczęły się pojawiać.</p>
+        <i class="bi bi-tools display-4"></i>
+        <p class="mt-2">Brak zleceń serwisowych.</p>
+        <p class="small">Udostępnij swój link klientom, aby zaczęły się pojawiać zgłoszenia.</p>
     </div>
 {% endif %}
 {% endblock %}
