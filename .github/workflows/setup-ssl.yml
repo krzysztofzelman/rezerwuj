@@ -20,23 +20,22 @@ jobs:
             echo "=== 1. Tworzenie katalogu certbot ==="
             mkdir -p /var/www/certbot
 
-            echo "=== 1b. Sprawdzenie DNS ==="
-            resolved_ip=$(dig +short "$DOMAIN" 2>/dev/null || host "$DOMAIN" 2>/dev/null | awk '/has address/ {print $4}')
-            my_ip=$(curl -s https://api.ipify.org 2>/dev/null)
-            echo "DNS dla $DOMAIN -> $resolved_ip"
-            echo "VPS IP -> $my_ip"
+            echo "=== 1b. Zatrzymanie nginx na czas certbot ==="
+            # nginx na porcie 443 wymaga certa dla napraw.kzelman.pl, ale go nie ma,
+            # przez co LE dostaje odpowiedź z innego server block. Używamy standalone.
+            nginx -s stop 2>/dev/null || true
+            sleep 1
 
-            echo "=== 2. Pobranie certyfikatu SSL (HTTP-01) ==="
-            certbot certonly --webroot -w /var/www/certbot \
-              --preferred-challenges http \
+            echo "=== 2. Pobranie certyfikatu SSL (standalone, port 80) ==="
+            certbot certonly --standalone --preferred-challenges http \
               --email krzysztof@zelman.pl --agree-tos --no-eff-email \
               -d "$DOMAIN" 2>&1 || echo "CERTBOT_ATTEMPT_COMPLETE"
 
             echo "=== 3. Test nginx ==="
             nginx -t
 
-            echo "=== 4. Przeladowanie nginx ==="
-            nginx -s reload
+            echo "=== 4. Uruchomienie nginx ==="
+            nginx
 
             echo "=== 5. Aktualizacja SITE_URL ==="
             cd /root/napraw_mnie
