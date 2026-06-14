@@ -19,7 +19,8 @@
       "Bash(goto *)",
       "Bash(:found)",
       "Bash(dir *)",
-      "Bash(type *)"
+      "Bash(type *)",
+      "Bash(sleep *)"
     ]
   },
   "$version": 4

@@ -2,7 +2,7 @@
 name: bootstrap5-theme-rebrand
 description: Rebrand a Bootstrap 5 application's full color system using CSS custom property overrides — primary, semantic accents (success/info/warning/danger), Flatpickr, icons, and metadata — without touching Bootstrap source
 source: auto-skill
-extracted_at: '2026-06-14T11:33:16.652Z'
+extracted_at: '2026-06-14T11:40:00.000Z'
 ---
 
 # Bootstrap 5 Theme Rebrand via CSS Custom Properties
@@ -102,21 +102,23 @@ This propagates to all `.bg-success`, `.text-success`, `.alert-success`, `.btn-s
 
 | Semantic | Recommended approach |
 |----------|---------------------|
-| `success` | Use a **warmer, darker shade** of the primary (e.g., `#E67E22` when primary is `#FF6B35`). This creates visual hierarchy without introducing a cold color. |
+| `success` | Start with a **dark teal or muted green** — e.g., `#00897B` when primary is `#FF6B35`. Teal is complementary to orange on the color wheel, professional, and not eye-straining. **Avoid warm shades of the primary** (like `#E67E22` orange-brown) — users consistently reject them as "oczojebny" (eye-bleeding) because they blend confusingly with the primary. |
 | `info` | Keep a neutral blue (`#3498DB`) — it's used sparingly and provides helpful contrast. |
 | `warning` | Standard yellow/amber — doesn't clash with warm palettes. |
 | `danger` | Standard red — doesn't clash. |
 
 ### When the user complains about the green
 
-If the user says "oślepia ten kolor" (this color blinds me) referring to green Bootstrap elements, they mean `--bs-success` (`#198754`, the default Bootstrap green). Override it:
+If the user says "oślepia ten kolor" / "oczojebny" (eye-bleeding) referring to green Bootstrap elements, they mean `--bs-success` (`#198754`, the default Bootstrap green). **Do NOT use a warm shade of the primary** (like `#E67E22` warm orange) — users will reject it as confusing/eye-bleeding. Instead use a **dark teal** that complements the primary without clashing:
 
 ```css
 :root {
-    --bs-success: #E67E22;   /* warm orange, matches brand */
-    --bs-success-rgb: 230, 126, 34;
+    --bs-success: #00897B;    /* dark teal — complementary to orange, not blinding */
+    --bs-success-rgb: 0, 137, 123;
 }
 ```
+
+This also means the Flatpickr available-dates and any teal-toned elements should match the new success color family.
 
 ## Handling third-party date pickers (Flatpickr example)
 
@@ -124,25 +126,25 @@ Flatpickr's theme colors (today highlight, selected date) are set via direct col
 
 ### Available / selected states
 
-The `.flatpickr-day.available` class uses hardcoded green tones that match Bootstrap's old `--bs-success`. Update them to warm tones matching the new palette:
+The `.flatpickr-day.available` class uses hardcoded green tones that match Bootstrap's old `--bs-success`. Update them to **teal tones** matching the new success palette (when primary is orange):
 
 ```css
-/* Flatpickr — available dates (before: green tones) */
+/* Flatpickr — available dates (before: green tones; after: teal tones) */
 .flatpickr-day.available {
-    background: #fde8d8 !important;    /* light peach */
-    border-color: #f5cba7 !important;  /* medium peach */
-    color: #A04000 !important;         /* dark burnt orange text */
+    background: #d1f2eb !important;    /* light teal */
+    border-color: #a3e4d7 !important;  /* medium teal */
+    color: #0b5345 !important;         /* dark teal-green text */
     font-weight: 600;
     cursor: pointer !important;
 }
 
 .flatpickr-day.available:hover {
-    background: #f8d5b8 !important;    /* slightly darker peach */
+    background: #a3e4d7 !important;    /* medium teal on hover */
 }
 
 /* Flatpickr — today circle */
 .flatpickr-day.today {
-    border-color: #FF6B35 !important;
+    border-color: #FF6B35 !important;  /* brand primary */
 }
 
 /* Flatpickr — selected date */
@@ -151,14 +153,6 @@ The `.flatpickr-day.available` class uses hardcoded green tones that match Boots
     background: #FF6B35 !important;
     border-color: #FF6B35 !important;
 }
-
-/* Custom slot buttons */
-.slot-btn:hover,
-.slot-btn.selected {
-    background: #FF6B35 !important;
-    border-color: #FF6B35 !important;
-}
-```
 
 Use `!important` sparingly — only for third-party components that set inline styles or have higher-specificity rules.
 
@@ -248,7 +242,26 @@ app = FastAPI(
 
 When editing templates, watch for existing broken markup — duplicate `style` attributes, mismatched tags, etc. Fix them as you go rather than leaving them for a separate cleanup pass.
 
-### 7. Verify visually
+### 7. Fix CSP if source maps are blocked
+
+After deploying, the browser console may show CSP errors like:
+
+```
+Connecting to 'https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js.map'
+violates the following Content Security Policy directive: "connect-src 'self'".
+```
+
+Browsers request `.map` (source map) files via `connect-src`, not `script-src` or `style-src`. Add the CDN domain to the `connect-src` directive:
+
+```python
+# Before:
+"connect-src 'self'; "
+
+# After:
+"connect-src 'self' https://cdn.jsdelivr.net;"
+```
+
+### 8. Verify visually
 
 After deploying, check:
 - Is every element that was previously blue now using the new brand color?
