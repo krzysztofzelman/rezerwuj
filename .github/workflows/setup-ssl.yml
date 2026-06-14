@@ -27,9 +27,9 @@ jobs:
             sleep 1
 
             echo "=== 2. Pobranie certyfikatu SSL (standalone, port 80) ==="
-            certbot certonly --standalone --preferred-challenges http \
+            certbot certonly --standalone --preferred-challenges http --non-interactive \
               --email krzysztof@zelman.pl --agree-tos --no-eff-email \
-              -d "$DOMAIN" 2>&1 || echo "CERTBOT_ATTEMPT_COMPLETE"
+              -d "$DOMAIN" 2>&1
 
             echo "=== 3. Instalacja configu nginx ==="
             cp /root/napraw_mnie/nginx.conf /etc/nginx/sites-available/$DOMAIN
