@@ -166,8 +166,8 @@ def prometheus_metrics():
 async def favicon():
     """Minimalny favicon — kalendarz."""
     svg = """<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
-  <rect x="6" y="12" width="52" height="46" rx="6" fill="#D35400"/>
-  <rect x="6" y="20" width="52" height="10" fill="#B64900"/>
+  <rect x="6" y="12" width="52" height="46" rx="6" fill="#2C3E50"/>
+  <rect x="6" y="20" width="52" height="10" fill="#1B2838"/>
   <rect x="12" y="14" width="6" height="5" rx="2" fill="#fff"/>
   <rect x="28" y="14" width="6" height="5" rx="2" fill="#fff"/>
   <rect x="44" y="14" width="6" height="5" rx="2" fill="#fff"/>

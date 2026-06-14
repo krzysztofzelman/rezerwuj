@@ -21,7 +21,8 @@
       "Bash(dir *)",
       "Bash(type *)",
       "Bash(sleep *)",
-      "Bash(findstr *)"
+      "Bash(findstr *)",
+      "Bash(grep *)"
     ]
   },
   "$version": 4

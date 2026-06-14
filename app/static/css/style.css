@@ -3,8 +3,8 @@
 
 /* Bootstrap override — kolorystyka naprawmnie */
 :root {
-    --bs-primary: #D35400;
-    --bs-primary-rgb: 211, 84, 0;
+    --bs-primary: #2C3E50;
+    --bs-primary-rgb: 44, 62, 80;
     --bs-success: #00897B;
     --bs-success-rgb: 0, 137, 123;
     --bs-info: #3498DB;
@@ -13,7 +13,7 @@
     --bs-warning-rgb: 241, 196, 15;
     --bs-danger: #E74C3C;
     --bs-danger-rgb: 231, 76, 60;
-    --bs-primary-hover: #B64900;
+    --bs-primary-hover: #1B2838;
     --bs-body-color: #2C3E50;
     --bs-body-bg: #ECF0F1;
 }
@@ -57,12 +57,12 @@ body {
 }
 
 .flatpickr-day.today {
-    border-color: #D35400 !important;
+    border-color: #2C3E50 !important;
 }
 
 .flatpickr-day.selected {
-    background: #D35400 !important;
-    border-color: #D35400 !important;
+    background: #2C3E50 !important;
+    border-color: #2C3E50 !important;
     color: #fff !important;
 }
 
@@ -80,14 +80,14 @@ body {
 }
 
 .slot-btn:hover {
-    border-color: #D35400;
-    background: #fef0e8;
-    color: #D35400;
+    border-color: #2C3E50;
+    background: #f0f2f4;
+    color: #2C3E50;
 }
 
 .slot-btn.selected {
-    border-color: #D35400;
-    background: #D35400;
+    border-color: #2C3E50;
+    background: #2C3E50;
     color: #fff;
 }
 
@@ -154,10 +154,10 @@ form.d-inline {
 
 /* btn-outline-primary hover fix dla nowego koloru */
 .btn-outline-primary {
-    --bs-btn-color: #D35400;
-    --bs-btn-border-color: #D35400;
-    --bs-btn-hover-bg: #D35400;
-    --bs-btn-hover-border-color: #D35400;
-    --bs-btn-active-bg: #B64900;
-    --bs-btn-active-border-color: #B64900;
+    --bs-btn-color: #2C3E50;
+    --bs-btn-border-color: #2C3E50;
+    --bs-btn-hover-bg: #2C3E50;
+    --bs-btn-hover-border-color: #2C3E50;
+    --bs-btn-active-bg: #1B2838;
+    --bs-btn-active-border-color: #1B2838;
 }

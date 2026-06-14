@@ -20,7 +20,8 @@
       "Bash(:found)",
       "Bash(dir *)",
       "Bash(type *)",
-      "Bash(sleep *)"
+      "Bash(sleep *)",
+      "Bash(findstr *)"
     ]
   },
   "$version": 4
