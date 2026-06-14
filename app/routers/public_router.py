@@ -23,7 +23,7 @@ from app.email_mock import (
 from app.payments import create_deposit_checkout
 from app.config import SITE_URL, RECAPTCHA_SITE_KEY, RECAPTCHA_SECRET_KEY
 
-logger = logging.getLogger("servicehub.public")
+logger = logging.getLogger("napraw_mnie.public")
 router = APIRouter(tags=["public"])
 templates = Jinja2Templates(directory="app/templates")
 

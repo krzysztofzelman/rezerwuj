@@ -58,15 +58,15 @@ def generate_booking_ics(
         desc += f"Usługa: {service_name}\n"
     if provider_address:
         desc += f"Adres: {provider_address}\n"
-    desc += f"\n— System ServiceHub"
+    desc += f"\n— System Napraw Mnie"
 
-    uid = f"{booking_id or uuid.uuid4()}@servicehub.app"
+    uid = f"{booking_id or uuid.uuid4()}@naprawmnie.pl"
     now = datetime.now(timezone(timedelta(hours=1))).strftime("%Y%m%dT%H%M%S")
 
     ics_lines = [
         "BEGIN:VCALENDAR",
         "VERSION:2.0",
-        "PRODID:-//ServiceHub//PL",
+        "PRODID:-//NaprawMnie//PL",
         "CALSCALE:GREGORIAN",
         "METHOD:PUBLISH",
         "BEGIN:VEVENT",

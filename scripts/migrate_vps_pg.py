@@ -1,11 +1,11 @@
-"""Uruchom migracje ServiceHub na PostgreSQL w kontenerze Docker na VPS."""
+"""Uruchom migracje Napraw Mnie na PostgreSQL w kontenerze Docker na VPS."""
 import psycopg2
 
 conn = psycopg2.connect(
     host="db",
-    dbname="servicehub",
-    user="servicehub",
-    password="servicehub_secret_2024",
+    dbname="napraw_mnie",
+    user="napraw_mnie",
+    password="napraw_mnie_secret_2024",
 )
 c = conn.cursor()
 

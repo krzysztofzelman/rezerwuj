@@ -1,5 +1,5 @@
 /**
- * ServiceHub — Kalendarz i system rezerwacji (frontend)
+ * Napraw Mnie — Kalendarz i system rezerwacji (frontend)
  *
  * Obsługuje:
  * - Inicjalizację Flatpickr z dostępnymi datami
@@ -286,5 +286,5 @@
     setTimeout(loadAllVisibleDays, 500);
     setTimeout(loadAllVisibleDays, 1500);
 
-    console.log('📅 ServiceHub — kalendarz zainicjalizowany');
+    console.log('📅 Napraw Mnie — kalendarz zainicjalizowany');
 })();

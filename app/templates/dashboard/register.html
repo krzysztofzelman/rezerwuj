@@ -1,12 +1,12 @@
 {% extends "base.html" %}
-{% block title %}Rejestracja — ServiceHub{% endblock %}
+{% block title %}Rejestracja — Napraw Mnie{% endblock %}
 {% block content %}
 <div class="container min-vh-100 d-flex align-items-center justify-content-center py-4">
     <div class="card shadow" style="max-width: 480px; width: 100%;">
         <div class="card-body p-4">
             <div class="text-center mb-4">
                 <i class="bi bi-tools text-primary display-4"></i>
-                <h1 class="h4 mt-2">Rejestracja — ServiceHub</h1>
+                <h1 class="h4 mt-2">Rejestracja — Napraw Mnie</h1>
                 <p class="text-muted small">14 dni za darmo, potem {{ subscription_price_pln|default('49') }} zł/mies.</p>
             </div>
 
@@ -31,7 +31,7 @@
                         <span class="text-muted fw-normal">(bez polskich znaków)</span>
                     </label>
                     <div class="input-group">
-                        <span class="input-group-text small">servicehub.app/</span>
+                        <span class="input-group-text small">naprawmnie.pl/</span>
                         <input type="text" class="form-control" id="slug" name="slug" required minlength="3"
                                placeholder="serwis-jan"
                                pattern="[a-z0-9-]+">

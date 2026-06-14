@@ -10,7 +10,7 @@ from app.database import get_db
 from app.models import ServiceProvider, Order
 from app.config import SITE_URL
 
-logger = logging.getLogger("servicehub.admin")
+logger = logging.getLogger("napraw_mnie.admin")
 router = APIRouter()
 templates = Jinja2Templates(directory="app/templates")
 

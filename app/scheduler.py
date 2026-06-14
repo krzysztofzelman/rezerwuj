@@ -15,7 +15,7 @@ from app.database import SessionLocal
 from app.models import Order, ServiceProvider
 from app.email_mock import send_booking_reminder_email
 
-logger = logging.getLogger("servicehub.scheduler")
+logger = logging.getLogger("napraw_mnie.scheduler")
 
 scheduler = AsyncIOScheduler()
 

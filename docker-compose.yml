@@ -1,23 +1,23 @@
 services:
   db:
     image: postgres:16-alpine
-    container_name: servicehub-db
+    container_name: napraw-mnie-db
     environment:
-      POSTGRES_DB: servicehub
-      POSTGRES_USER: servicehub
-      POSTGRES_PASSWORD: ${DB_PASSWORD:-servicehub_secret_2024}
+      POSTGRES_DB: napraw_mnie
+      POSTGRES_USER: napraw_mnie
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-napraw_mnie_secret_2024}
     volumes:
-      - servicehub-pgdata:/var/lib/postgresql/data
+      - napraw-mnie-pgdata:/var/lib/postgresql/data
     restart: always
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U servicehub -d servicehub"]
+      test: ["CMD-SHELL", "pg_isready -U napraw_mnie -d napraw_mnie"]
       interval: 5s
       timeout: 5s
       retries: 5
 
   app:
     build: .
-    container_name: servicehub-app
+    container_name: napraw-mnie-app
     depends_on:
       db:
         condition: service_healthy
@@ -26,7 +26,7 @@ services:
     env_file:
       - .env.production
     environment:
-      - DATABASE_URL=postgresql://servicehub:${DB_PASSWORD:-servicehub_secret_2024}@db:5432/servicehub
+      - DATABASE_URL=postgresql://napraw_mnie:${DB_PASSWORD:-napraw_mnie_secret_2024}@db:5432/napraw_mnie
     restart: always
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
@@ -36,4 +36,4 @@ services:
       start_period: 15s
 
 volumes:
-  servicehub-pgdata:
+  napraw-mnie-pgdata:

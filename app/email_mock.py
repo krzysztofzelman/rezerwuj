@@ -17,7 +17,7 @@ from app.config import (
     SITE_URL,
 )
 
-logger = logging.getLogger("servicehub.email")
+logger = logging.getLogger("napraw_mnie.email")
 
 
 def send_email(to: str, subject: str, html_body: str, text_body: str = "") -> bool:
@@ -147,20 +147,20 @@ def send_new_booking_notification_to_provider(
 <p style="margin:24px 0;text-align:center;">
 <a href="{SITE_URL}/dashboard/zlecenia" style="display:inline-block;background:#198754;color:#fff;text-decoration:none;padding:12px 32px;border-radius:6px;font-weight:bold;">Zobacz w panelu</a>
 </p>
-<p style="color:#6c757d;font-size:14px;">— ServiceHub</p></body></html>"""
+<p style="color:#6c757d;font-size:14px;">— Napraw Mnie</p></body></html>"""
     return send_email(to, subject, html)
 
 
 def send_password_reset_email(to: str, reset_url: str) -> bool:
     """Wysyła link do resetu hasła."""
-    subject = "Resetowanie hasła — ServiceHub"
+    subject = "Resetowanie hasła — Napraw Mnie"
     html = f"""<!DOCTYPE html><html><head><meta charset="utf-8"></head><body style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:20px;">
 <h2 style="color:#0d6efd;">🔑 Resetowanie hasła</h2>
-<p>Otrzymaliśmy prośbę o zresetowanie hasła dla Twojego konta w systemie <strong>ServiceHub</strong>.</p>
+<p>Otrzymaliśmy prośbę o zresetowanie hasła dla Twojego konta w systemie <strong>Napraw Mnie</strong>.</p>
 <p style="margin:24px 0;text-align:center;">
 <a href="{reset_url}" style="display:inline-block;background:#0d6efd;color:#fff;text-decoration:none;padding:12px 32px;border-radius:6px;font-weight:bold;">Zresetuj hasło</a>
 </p>
 <p style="color:#6c757d;font-size:13px;">Link wygaśnie za 1 godzinę. Jeśli nie prosiłeś o reset hasła, zignoruj tę wiadomość.</p>
 <hr style="border:none;border-top:1px solid #dee2e6;margin:16px 0;">
-<p style="color:#6c757d;font-size:12px;">ServiceHub — {SITE_URL}</p></body></html>"""
+<p style="color:#6c757d;font-size:12px;">Napraw Mnie — {SITE_URL}</p></body></html>"""
     return send_email(to, subject, html)

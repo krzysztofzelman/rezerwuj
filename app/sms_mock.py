@@ -8,7 +8,7 @@ import httpx
 
 from app.config import SMS_API_KEY, SMS_SENDER, SMS_MOCK
 
-logger = logging.getLogger("servicehub.sms")
+logger = logging.getLogger("napraw_mnie.sms")
 
 SMSAPI_URL = "https://api.smsapi.pl/sms.do"
 

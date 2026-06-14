@@ -27,7 +27,7 @@ logging.basicConfig(
     format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
     datefmt="%Y-%m-%d %H:%M:%S",
 )
-logger = logging.getLogger("servicehub")
+logger = logging.getLogger("napraw_mnie")
 
 # === Tworzenie tabel ===
 Base.metadata.create_all(bind=engine)
@@ -78,7 +78,7 @@ _run_migrations()
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Uruchamiane przy starcie i zamknięciu aplikacji."""
-    logger.info(f"🚀 ServiceHub uruchomiony na {SITE_URL}")
+    logger.info(f"🚀 Napraw Mnie uruchomiony na {SITE_URL}")
     logger.info(f"📧 Tryb SMS: {'MOCK' if __import__('app.config', fromlist=['']).SMS_MOCK else 'PRODUKCYJNY'}")
     logger.info(f"📧 Tryb E-mail: {'MOCK' if __import__('app.config', fromlist=['']).EMAIL_MOCK else 'PRODUKCYJNY (SMTP)'}")
 
@@ -102,7 +102,7 @@ async def lifespan(app: FastAPI):
     start_scheduler()
 
     yield
-    logger.info("👋 ServiceHub zatrzymany")
+    logger.info("👋 Napraw Mnie zatrzymany")
 
     stop_scheduler()
 
@@ -143,7 +143,7 @@ def _seed_admin():
 
 
 app = FastAPI(
-    title="ServiceHub — System Zarządzania Serwisem RTV/AGD",
+    title="Napraw Mnie — System Zarządzania Serwisem RTV/AGD",
     description="SaaS do zarządzania przyjęciami serwisowymi dla warsztatów RTV/AGD",
     version="1.0.0",
     lifespan=lifespan,

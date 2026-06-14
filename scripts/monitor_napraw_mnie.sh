@@ -1,9 +1,9 @@
 #!/bin/bash
-# Monitor servicehub-app healthcheck - runs every 5 min via cron
+# Monitor napraw-mnie-app healthcheck - runs every 5 min via cron
 
-LOGFILE=/var/log/servicehub-monitor.log
-APP_NAME=servicehub-app
-COMPOSE_DIR=/root/servicehub
+LOGFILE=/var/log/napraw-mnie-monitor.log
+APP_NAME=napraw-mnie-app
+COMPOSE_DIR=/root/napraw_mnie
 
 check_and_log() {
     local label="$1" url="$2"

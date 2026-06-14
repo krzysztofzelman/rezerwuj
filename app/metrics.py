@@ -1,4 +1,4 @@
-"""Metryki Prometheus dla systemu ServiceHub.
+"""Metryki Prometheus dla systemu Napraw Mnie.
 
 Liczniki i wskaźniki dostępne na endpointcie GET /metrics.
 """
@@ -9,47 +9,47 @@ from prometheus_client import Counter, Gauge, Histogram, generate_latest, CONTEN
 from fastapi import Request, Response
 from starlette.middleware.base import BaseHTTPMiddleware
 
-logger = logging.getLogger("servicehub.metrics")
+logger = logging.getLogger("napraw_mnie.metrics")
 
 # === Liczniki ===
 
 orders_total = Counter(
-    "servicehub_orders_total",
+    "napraw_mnie_orders_total",
     "Łączna liczba zleceń",
     ["status", "provider_id"],
 )
 
 rate_limit_hits = Counter(
-    "servicehub_rate_limit_hits_total",
+    "napraw_mnie_rate_limit_hits_total",
     "Liczba odrzuconych żądań (429)",
 )
 
 emails_sent = Counter(
-    "servicehub_emails_sent_total",
+    "napraw_mnie_emails_sent_total",
     "Liczba wysłanych e-maili",
 )
 
 password_resets = Counter(
-    "servicehub_password_resets_total",
+    "napraw_mnie_password_resets_total",
     "Liczba wysłanych linków do resetu hasła",
 )
 
 # === Wskaźniki ===
 
 active_providers = Gauge(
-    "servicehub_active_providers",
+    "napraw_mnie_active_providers",
     "Liczba aktywnych usługodawców (can_accept_orders)",
 )
 
 total_orders_gauge = Gauge(
-    "servicehub_total_orders",
+    "napraw_mnie_total_orders",
     "Łączna liczba zleceń w systemie",
 )
 
 # === Histogramy ===
 
 request_duration = Histogram(
-    "servicehub_request_duration_seconds",
+    "napraw_mnie_request_duration_seconds",
     "Czas trwania żądań HTTP",
     ["method", "path", "status_code"],
     buckets=(0.01, 0.05, 0.1, 0.25, 0.5, 1.0, 2.5, 5.0, 10.0),

@@ -1,10 +1,10 @@
 #!/bin/bash
-# Skrypt inicjalizujący wdrożenie ServiceHub na VPS
+# Skrypt inicjalizujący wdrożenie Napraw Mnie na VPS
 # Uruchom: bash scripts/deploy.sh
 set -e
 
 DOMAIN="rezerwuj.kzelman.pl"
-REPO_DIR="/root/servicehub"
+REPO_DIR="/root/napraw_mnie"
 EMAIL="krzysztof@zelman.pl"
 APP_PORT=8002
 
@@ -12,14 +12,14 @@ echo "=== Krok 1: Klonowanie repozytorium ==="
 if [ -d "$REPO_DIR" ]; then
     cd $REPO_DIR && git pull
 else
-    git clone git@github.com:krzysztofzelman/servicehub.git $REPO_DIR
+    git clone git@github.com:krzysztofzelman/napraw_mnie.git $REPO_DIR
     cd $REPO_DIR
 fi
 
 echo "=== Krok 2: Konfiguracja .env.production ==="
 if [ ! -f "$REPO_DIR/.env.production" ]; then
     cat > .env.production << 'EOF'
-DATABASE_URL=sqlite:///./data/servicehub.db
+DATABASE_URL=sqlite:///./data/napraw_mnie.db
 SECRET_KEY=change-this-to-a-long-random-secret-key-for-production
 SITE_URL=https://$DOMAIN
 STRIPE_SECRET_KEY=
@@ -27,7 +27,7 @@ STRIPE_PUBLISHABLE_KEY=
 STRIPE_WEBHOOK_SECRET=
 SUBSCRIPTION_PRICE_ID=
 SMS_API_KEY=
-SMS_SENDER=ServiceHub
+SMS_SENDER=NaprawMnie
 SMS_MOCK=true
 TRIAL_DAYS=14
 MAX_BOOKING_DAYS_AHEAD=60

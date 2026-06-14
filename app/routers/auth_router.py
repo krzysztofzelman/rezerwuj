@@ -14,7 +14,7 @@ from app.auth import hash_password, verify_password, create_access_token
 from app.config import TRIAL_DAYS, SITE_URL
 from app.email_mock import send_password_reset_email
 
-logger = logging.getLogger("servicehub.auth")
+logger = logging.getLogger("napraw_mnie.auth")
 router = APIRouter(prefix="/auth", tags=["auth"])
 templates = Jinja2Templates(directory="app/templates")
 

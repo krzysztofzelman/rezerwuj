@@ -18,7 +18,7 @@ from app.config import (
 )
 from app.models import ServiceProvider, Order
 
-logger = logging.getLogger("servicehub.payments")
+logger = logging.getLogger("napraw_mnie.payments")
 
 stripe.api_key = STRIPE_SECRET_KEY
 

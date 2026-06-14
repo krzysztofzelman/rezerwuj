@@ -22,7 +22,7 @@ from app.payments import (
 from app.ics_export import generate_booking_ics
 from app.config import SITE_URL, TRIAL_DAYS
 
-logger = logging.getLogger("servicehub.dashboard")
+logger = logging.getLogger("napraw_mnie.dashboard")
 router = APIRouter()
 templates = Jinja2Templates(directory="app/templates")
 

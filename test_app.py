@@ -1,5 +1,5 @@
 """
-Test aplikacji ServiceHub.
+Test aplikacji Napraw Mnie.
 Uruchom: python test_app.py (gdy app działa na localhost:8000)
 """
 import urllib.request, urllib.parse
@@ -50,7 +50,7 @@ def parse_token(hdrs):
 
 
 def main():
-    print("=== Testowanie aplikacji ServiceHub ===\n")
+    print("=== Testowanie aplikacji Napraw Mnie ===\n")
 
     # 1. Login page
     print("1. Strona logowania...", end=" ")

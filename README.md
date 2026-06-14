@@ -1,4 +1,4 @@
-# ServiceHub — System Zarządzania Zleceniami Serwisowymi RTV/AGD
+# Napraw Mnie — System Zarządzania Zleceniami Serwisowymi RTV/AGD
 
 SaaS do zarządzania przyjęciem i naprawą sprzętu RTV/AGD dla warsztatów serwisowych.
 
@@ -63,7 +63,7 @@ SaaS do zarządzania przyjęciem i naprawą sprzętu RTV/AGD dla warsztatów ser
 ### 2. Instalacja
 
 ```bash
-cd servicehub
+cd napraw_mnie
 pip install -r requirements.txt
 cp .env.example .env
 # Edytuj .env według potrzeb
@@ -116,7 +116,7 @@ Dostępny po zalogowaniu na konto z rolą admina:
 Konto admina tworzone automatycznie przy starcie aplikacji — konfiguracja w `.env.production`:
 
 ```
-ADMIN_EMAIL=admin@servicehub.app
+ADMIN_EMAIL=admin@naprawmnie.pl
 ADMIN_PASSWORD=Admin123!
 ```
 
@@ -124,10 +124,10 @@ ADMIN_PASSWORD=Admin123!
 
 | Zmienna | Opis | Domyślnie |
 |---------|------|-----------|
-| `DATABASE_URL` | URI bazy danych | `sqlite:///./servicehub.db` |
+| `DATABASE_URL` | URI bazy danych | `sqlite:///./napraw_mnie.db` |
 | `SECRET_KEY` | Klucz do JWT i CSRF (wymagany w produkcji!) | `""` (brak — warning przy starcie) |
 | `SITE_URL` | Adres aplikacji | `http://localhost:8000` |
-| `ADMIN_EMAIL` | Email konta admina | `admin@servicehub.app` |
+| `ADMIN_EMAIL` | Email konta admina | `admin@naprawmnie.pl` |
 | `ADMIN_PASSWORD` | Hasło admina (wymagane w produkcji!) | `""` (brak — warning przy starcie) |
 | `TRIAL_DAYS` | Długość okresu próbnego | `14` |
 | `MAX_BOOKING_DAYS_AHEAD` | Maks. liczba dni do przodu dla przyjmowania zleceń | `60` |
@@ -137,13 +137,13 @@ ADMIN_PASSWORD=Admin123!
 | `SUBSCRIPTION_PRICE_ID` | ID produktu Stripe | `price_...` |
 | `SUBSCRIPTION_PRICE_PLN` | Cena subskrypcji w groszach | `4900` |
 | `SMS_API_KEY` | Klucz API SMS | — |
-| `SMS_SENDER` | Nazwa nadawcy SMS | `ServiceHub` |
+| `SMS_SENDER` | Nazwa nadawcy SMS | `NaprawMnie` |
 | `SMS_MOCK` | Tryb mock SMS (true=log, false=API) | `true` |
 | `SMTP_HOST` | Serwer SMTP | `""` |
 | `SMTP_PORT` | Port SMTP (STARTTLS) | `587` |
 | `SMTP_USER` | Użytkownik SMTP | `""` |
 | `SMTP_PASSWORD` | Hasło SMTP | `""` |
-| `SMTP_FROM` | Adres nadawcy e-mail | `ServiceHub <noreply@servicehub.app>` |
+| `SMTP_FROM` | Adres nadawcy e-mail | `Napraw Mnie <noreply@naprawmnie.pl>` |
 | `EMAIL_MOCK` | Tryb mock e-mail (true=log, false=SMTP) | `true` |
 | `RECAPTCHA_SITE_KEY` | Site key Google reCAPTCHA v2 | `""` |
 | `RECAPTCHA_SECRET_KEY` | Secret key Google reCAPTCHA v2 | `""` |
@@ -310,13 +310,13 @@ Endpoint `/metrics` udostępnia metryki w formacie Prometheus:
 
 | Metryka | Typ | Opis |
 |---------|-----|------|
-| `servicehub_orders_total` | Counter | Łączna liczba zleceń |
-| `servicehub_rate_limit_hits_total` | Counter | Liczba odrzuconych żądań (429) |
-| `servicehub_emails_sent_total` | Counter | Liczba wysłanych e-maili |
-| `servicehub_password_resets_total` | Counter | Liczba wysłanych linków resetujących |
-| `servicehub_active_providers` | Gauge | Liczba aktywnych serwisów |
-| `servicehub_total_orders` | Gauge | Łączna liczba zleceń w systemie |
-| `servicehub_request_duration_seconds` | Histogram | Czas trwania żądań HTTP (etykiety: method, path, status) |
+| `napraw_mnie_orders_total` | Counter | Łączna liczba zleceń |
+| `napraw_mnie_rate_limit_hits_total` | Counter | Liczba odrzuconych żądań (429) |
+| `napraw_mnie_emails_sent_total` | Counter | Liczba wysłanych e-maili |
+| `napraw_mnie_password_resets_total` | Counter | Liczba wysłanych linków resetujących |
+| `napraw_mnie_active_providers` | Gauge | Liczba aktywnych serwisów |
+| `napraw_mnie_total_orders` | Gauge | Łączna liczba zleceń w systemie |
+| `napraw_mnie_request_duration_seconds` | Histogram | Czas trwania żądań HTTP (etykiety: method, path, status) |
 
 ## Automatyka (APScheduler)
 
@@ -330,7 +330,7 @@ Rate limitery są resetowane co minutę (okno kroczące dla RAM, EXPIRE 60s dla 
 ## Struktura projektu
 
 ```
-servicehub/
+napraw_mnie/
 ├── .env                    # Konfiguracja lokalna
 ├── .env.example            # Wzór konfiguracji
 ├── .env.production         # Konfiguracja produkcyjna
@@ -364,7 +364,7 @@ servicehub/
 │   │   ├── base.html
 │   │   ├── public/
 │   │   │   ├── booking.html        # Strona zgłoszenia sprzętu (typ, marka, model, opis usterki, zdjęcia)
-│   │   │   ├── landing.html        # Landing page ServiceHub
+│   │   │   ├── landing.html        # Landing page Napraw Mnie
 │   │   │   ├── confirmation.html
 │   │   │   ├── booking_closed.html
 │   │   │   └── not_found.html
@@ -391,14 +391,14 @@ servicehub/
 │           └── calendar.js       # Obsługa formularza zgłoszenia (reCAPTCHA, wybór sprzętu)
 ├── migrations/
 │   ├── 001_initial.sql
-│   └── 002_servicehub_columns.sql   # Migracja dodająca pola sprzętu RTV/AGD i OrderStatus
+│   └── 002_napraw_mnie_columns.sql   # Migracja dodająca pola sprzętu RTV/AGD i OrderStatus
 └── scripts/
     ├── deploy.sh               # Deploy na VPS
     ├── vps-init.sh             # Inicjalizacja VPS
-    ├── monitor_servicehub.sh   # Healthcheck co 5 min (cron)
+    ├── monitor_napraw_mnie.sh   # Healthcheck co 5 min (cron)
     ├── migrate.py              # Migracja SQLite → PostgreSQL
-    ├── migrate_vps.py          # Migracja ServiceHub na SQLite w Dockerze
-    ├── migrate_vps_pg.py       # Migracja ServiceHub na PostgreSQL w Dockerze
+    ├── migrate_vps.py          # Migracja Napraw Mnie na SQLite w Dockerze
+    ├── migrate_vps_pg.py       # Migracja Napraw Mnie na PostgreSQL w Dockerze
     └── test_login.sh           # Test logowania i dashboardu
 ```
 

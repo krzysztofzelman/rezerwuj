@@ -26,7 +26,7 @@ echo ""
 echo "=== Step 2: POST login ==="
 curl -s -c "$COOKIE_FILE" -b "$COOKIE_FILE" -D /tmp/test_headers2.txt -X POST \
   "$DOMAIN/auth/logowanie" \
-  -d "email=admin@servicehub.app&password=Admin123!" \
+  -d "email=admin@naprawmnie.pl&password=Admin123!" \
   -H "X-CSRF-Token: $RAW_TOKEN" -o /tmp/test_login_final.html
 
 echo "HTTP status:"
