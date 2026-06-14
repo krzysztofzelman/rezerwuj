@@ -10,58 +10,10 @@ class RegisterRequest(BaseModel):
     name: str
     slug: str
 
-    @field_validator("email")
-    @classmethod
-    def validate_email(cls, v: str) -> str:
-        v = v.strip().lower()
-        if not re.match(r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$", v):
-            raise ValueError("Nieprawidłowy adres e-mail")
-        return v
-
-    @field_validator("password")
-    @classmethod
-    def validate_password(cls, v: str) -> str:
-        if len(v) < 8:
-            raise ValueError("Hasło musi mieć co najmniej 8 znaków")
-        return v
-
-    @field_validator("name")
-    @classmethod
-    def validate_name(cls, v: str) -> str:
-        v = v.strip()
-        if len(v) < 2:
-            raise ValueError("Imię i nazwisko musi mieć co najmniej 2 znaki")
-        return v
-
-    @field_validator("slug")
-    @classmethod
-    def validate_slug(cls, v: str) -> str:
-        v = v.strip().lower()
-        if not re.match(r"^[a-z0-9-]+$", v):
-            raise ValueError("Slug może zawierać tylko małe litery, cyfry i myślniki")
-        if len(v) < 3:
-            raise ValueError("Slug musi mieć co najmniej 3 znaki")
-        return v
-
 
 class LoginRequest(BaseModel):
     email: str
     password: str
-
-    @field_validator("email")
-    @classmethod
-    def validate_email(cls, v: str) -> str:
-        v = v.strip().lower()
-        if not re.match(r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$", v):
-            raise ValueError("Nieprawidłowy adres e-mail")
-        return v
-
-    @field_validator("password")
-    @classmethod
-    def validate_password(cls, v: str) -> str:
-        if len(v) < 1:
-            raise ValueError("Hasło nie może być puste")
-        return v
 
 
 class TokenResponse(BaseModel):
@@ -292,4 +244,104 @@ class OrderUpdate(BaseModel):
             valid = {"pending", "confirmed", "in_progress", "completed", "cancelled"}
             if v not in valid:
                 raise ValueError(f"Nieprawidłowy status. Dozwolone: {', '.join(sorted(valid))}")
+        return v
+
+
+# === B2C Marketplace ===
+
+VALID_DELIVERY_TYPES = ["self_delivery", "courier_pickup", "home_visit"]
+
+
+class RepairSearchRequest(BaseModel):
+    """Wyszukiwanie serwisów w marketplace B2C."""
+    device_category: str = ""            # kategoria urządzenia (opcjonalna)
+    city: str = ""                       # miasto (wymagane do wyszukiwania)
+    district: str = ""                   # dzielnica (opcjonalna)
+    delivery_type: str = ""              # preferowany typ dostawy (opcjonalny)
+
+    @field_validator("city")
+    @classmethod
+    def validate_city(cls, v: str) -> str:
+        v = v.strip()
+        if len(v) < 2:
+            raise ValueError("Miasto musi mieć co najmniej 2 znaki")
+        return v
+
+    @field_validator("delivery_type")
+    @classmethod
+    def validate_delivery(cls, v: str) -> str:
+        if v and v not in VALID_DELIVERY_TYPES:
+            raise ValueError(f"Nieprawidłowy typ dostawy: {v}")
+        return v
+
+
+class RepairCreateRequest(BaseModel):
+    """Tworzenie zlecenia naprawy przez marketplace B2C."""
+    location_id: int
+    client_name: str
+    client_surname: str
+    client_phone: str
+    client_email: str = ""
+    device_type: str = "inny"
+    brand: str = ""
+    model_name: str = ""
+    serial_number: str = ""
+    problem_description: str = ""
+    delivery_type: str = "self_delivery"
+    delivery_address: str = ""
+    delivery_date_from: str = ""  # YYYY-MM-DD (opcjonalnie)
+
+    @field_validator("client_name")
+    @classmethod
+    def validate_client_name(cls, v: str) -> str:
+        v = v.strip()
+        if len(v) < 2:
+            raise ValueError("Imię musi mieć co najmniej 2 znaki")
+        return v
+
+    @field_validator("client_surname")
+    @classmethod
+    def validate_client_surname(cls, v: str) -> str:
+        v = v.strip()
+        if len(v) < 2:
+            raise ValueError("Nazwisko musi mieć co najmniej 2 znaki")
+        return v
+
+    @field_validator("client_phone")
+    @classmethod
+    def validate_client_phone(cls, v: str) -> str:
+        v = v.strip()
+        digits = re.sub(r"\D", "", v)
+        if len(digits) < 9:
+            raise ValueError("Numer telefonu musi mieć co najmniej 9 cyfr")
+        return v
+
+    @field_validator("device_type")
+    @classmethod
+    def validate_device_type(cls, v: str) -> str:
+        v = v.strip().lower()
+        if v and v not in VALID_DEVICE_TYPES:
+            raise ValueError(f"Nieprawidłowy typ urządzenia. Dozwolone: {', '.join(VALID_DEVICE_TYPES)}")
+        return v
+
+    @field_validator("problem_description")
+    @classmethod
+    def validate_problem(cls, v: str) -> str:
+        v = v.strip()
+        if len(v) < 5:
+            raise ValueError("Opis problemu musi mieć co najmniej 5 znaków")
+        return v
+
+    @field_validator("delivery_type")
+    @classmethod
+    def validate_delivery(cls, v: str) -> str:
+        if v not in VALID_DELIVERY_TYPES:
+            raise ValueError(f"Nieprawidłowy typ dostawy. Dozwolone: {', '.join(VALID_DELIVERY_TYPES)}")
+        return v
+
+    @field_validator("delivery_date_from")
+    @classmethod
+    def validate_date_from(cls, v: str) -> str:
+        if v and not re.match(r"^\d{4}-\d{2}-\d{2}$", v):
+            raise ValueError("Nieprawidłowy format daty (YYYY-MM-DD)")
         return v

@@ -13,11 +13,11 @@ from sqlalchemy.orm import Session, selectinload
 
 from app.config import SITE_URL, STRIPE_WEBHOOK_SECRET, SECRET_KEY, ADMIN_PASSWORD, SUBSCRIPTION_PRICE_PLN
 from app.database import engine, Base, get_db, SessionLocal
-from app.models import ServiceProvider, WorkingHour, Service, Order, BlockedSlot
+from app.models import ServiceProvider, WorkingHour, Service, Order, BlockedSlot, ServiceProviderLocation
 from app.auth import decode_access_token
 from app.payments import handle_stripe_webhook, process_subscription_event, MOCK_MODE
 from app.csrf import verify_csrf
-from app.routers import auth_router, public_router, dashboard_router, admin_router
+from app.routers import auth_router, public_router, dashboard_router, admin_router, repairs_router
 from app.scheduler import start_scheduler, stop_scheduler
 from app.metrics import MetricsMiddleware, metrics_endpoint
 
@@ -42,7 +42,7 @@ def _run_migrations():
         return
 
     inspector = sa_inspect(engine)
-    all_models = [ServiceProvider, WorkingHour, Service, Order, BlockedSlot]
+    all_models = [ServiceProvider, WorkingHour, Service, Order, BlockedSlot, ServiceProviderLocation]
 
     for model_cls in all_models:
         table_name = model_cls.__tablename__
@@ -188,6 +188,9 @@ app.include_router(dashboard_router.router)
 
 # Router publiczny
 app.include_router(public_router.router)
+
+# Router B2C marketplace
+app.include_router(repairs_router.router)
 
 # Router admina
 app.include_router(admin_router.router)

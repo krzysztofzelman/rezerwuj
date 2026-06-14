@@ -1,5 +1,6 @@
 import datetime
 import logging
+import re
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from fastapi.responses import RedirectResponse
@@ -57,18 +58,30 @@ async def register(
 ):
     """Rejestracja nowego usługodawcy."""
     form = await request.form()
-    try:
-        reg_data = RegisterRequest(
-            email=form.get("email", ""),
-            password=form.get("password", ""),
-            name=form.get("name", ""),
-            slug=form.get("slug", ""),
-        )
-    except ValueError as e:
+    email = (form.get("email", "") or "").strip().lower()
+    password = form.get("password", "") or ""
+    name = (form.get("name", "") or "").strip()
+    slug = (form.get("slug", "") or "").strip().lower()
+
+    errors = []
+    if not re.match(r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$", email):
+        errors.append("Nieprawidłowy adres e-mail")
+    if len(password) < 8:
+        errors.append("Hasło musi mieć co najmniej 8 znaków")
+    if len(name) < 2:
+        errors.append("Imię i nazwisko musi mieć co najmniej 2 znaki")
+    if not re.match(r"^[a-z0-9-]+$", slug):
+        errors.append("Slug może zawierać tylko małe litery, cyfry i myślniki")
+    elif len(slug) < 3:
+        errors.append("Slug musi mieć co najmniej 3 znaki")
+
+    if errors:
         return templates.TemplateResponse(
             "dashboard/register.html",
-            {"request": request, "error": str(e), "csrf_token": getattr(request.state, "csrf_token", "")},
+            {"request": request, "error": " ".join(errors), "csrf_token": getattr(request.state, "csrf_token", "")},
         )
+
+    reg_data = RegisterRequest(email=email, password=password, name=name, slug=slug)
 
     # Sprawdź czy email już istnieje
     existing = db.query(ServiceProvider).filter(ServiceProvider.email == reg_data.email).first()
@@ -164,16 +177,26 @@ async def login(
 ):
     """Logowanie usługodawcy."""
     form = await request.form()
-    try:
-        login_data = LoginRequest(
-            email=form.get("email", ""),
-            password=form.get("password", ""),
-        )
-    except ValueError as e:
+    email = (form.get("email", "") or "").strip().lower()
+    password = form.get("password", "") or ""
+
+    errors = []
+    if not email or not re.match(r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$", email):
+        errors.append("Nieprawidłowy adres e-mail")
+    if len(password) < 1:
+        errors.append("Hasło nie może być puste")
+
+    if errors:
         return templates.TemplateResponse(
             "dashboard/login.html",
-            {"request": request, "error": str(e), "csrf_token": getattr(request.state, "csrf_token", "")},
+            {
+                "request": request,
+                "error": " ".join(errors),
+                "csrf_token": getattr(request.state, "csrf_token", ""),
+            },
         )
+
+    login_data = LoginRequest(email=email, password=password)
 
     provider = (
         db.query(ServiceProvider)

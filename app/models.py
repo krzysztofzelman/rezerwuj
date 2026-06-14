@@ -2,7 +2,8 @@ import datetime
 import enum
 from sqlalchemy import (
     Column, Integer, String, Text, Date, Time, DateTime,
-    ForeignKey, Boolean, UniqueConstraint, func, Enum as SAEnum,
+    ForeignKey, Boolean, UniqueConstraint, func, Float,
+    Enum as SAEnum,
 )
 from sqlalchemy.orm import relationship
 
@@ -15,6 +16,12 @@ class OrderStatus(str, enum.Enum):
     in_progress = "in_progress"  # W trakcie naprawy
     completed = "completed"      # Gotowe do odbioru
     cancelled = "cancelled"      # Anulowano
+
+
+class DeliveryType(str, enum.Enum):
+    self_delivery = "self_delivery"    # Odbiór własny w serwisie
+    courier_pickup = "courier_pickup"  # Kurier odbiera i dostarcza
+    home_visit = "home_visit"          # Serwisant dojeżdża do klienta
 
 
 class ServiceProvider(Base):
@@ -64,6 +71,9 @@ class ServiceProvider(Base):
     )
     services = relationship(
         "Service", back_populates="provider", cascade="all, delete-orphan"
+    )
+    locations = relationship(
+        "ServiceProviderLocation", back_populates="provider", cascade="all, delete-orphan"
     )
 
     @property
@@ -129,6 +139,50 @@ class Service(Base):
     provider = relationship("ServiceProvider", back_populates="services")
 
 
+class ServiceProviderLocation(Base):
+    """Lokalizacja serwisu — widoczna w wyszukiwarce B2C."""
+    __tablename__ = "provider_locations"
+
+    id = Column(Integer, primary_key=True, index=True)
+    provider_id = Column(Integer, ForeignKey("providers.id"), nullable=False, index=True)
+
+    # Lokalizacja
+    city = Column(String(100), nullable=False, index=True)
+    district = Column(String(100), default="")
+    address = Column(String(255), default="")
+
+    # Oferta
+    delivery_types = Column(Text, default="[]")  # JSON lista DeliveryType
+    repair_price = Column(Integer, default=0)  # bazowa cena naprawy (grosze)
+    avg_rating = Column(Float, default=0.0)
+    is_online = Column(Boolean, default=True)  # widoczny w wynikach
+
+    created_at = Column(DateTime, server_default=func.now())
+
+    provider = relationship("ServiceProvider", back_populates="locations")
+
+    __table_args__ = (
+        UniqueConstraint("provider_id", "city", "address", name="uq_provider_city_address"),
+    )
+
+    @property
+    def delivery_types_list(self) -> list:
+        import json
+        try:
+            return json.loads(self.delivery_types) if self.delivery_types else []
+        except (json.JSONDecodeError, TypeError):
+            return []
+
+    @delivery_types_list.setter
+    def delivery_types_list(self, value: list):
+        import json
+        self.delivery_types = json.dumps(value)
+
+    @property
+    def repair_price_pln(self) -> float:
+        return self.repair_price / 100 if self.repair_price else 0.0
+
+
 class Order(Base):
     __tablename__ = "bookings"
 
@@ -152,6 +206,16 @@ class Order(Base):
     booking_date = Column(Date, nullable=False)
     booking_time = Column(Time, nullable=False)
     duration = Column(Integer, default=60)  # minuty
+
+    # Dostawa (B2C marketplace)
+    delivery_type = Column(String(20), default="")  # self_delivery | courier_pickup | home_visit
+    courier_cost = Column(Integer, default=0)  # koszt kuriera (grosze)
+    delivery_date_from = Column(Date, nullable=True)
+    delivery_address = Column(Text, default="")  # adres do home_visit
+
+    # Opinia klienta (B2C)
+    client_rating = Column(Integer, nullable=True)  # 1-5 gwiazdek
+    client_review = Column(Text, default="")
 
     # Status i płatność
     status_order = Column(

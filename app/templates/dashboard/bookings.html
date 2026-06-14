@@ -17,6 +17,7 @@
                     <th>Klient</th>
                     <th>Telefon</th>
                     <th>Sprzęt</th>
+                    <th>Dostawa</th>
                     <th>Status</th>
                     <th>Płatność</th>
                     <th>Notatka serwisowa</th>
@@ -42,6 +43,25 @@
                             {% endif %}
                             {% if b.serial_number %}
                                 <br><small class="text-muted">SN: {{ b.serial_number }}</small>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% set dt_labels = {'self_delivery': 'Odbiór', 'courier_pickup': 'Kurier', 'home_visit': 'Dojazd'} %}
+                            {% if b.delivery_type %}
+                                <span class="badge bg-light text-dark">
+                                    {% if b.delivery_type.value == 'self_delivery' %}<i class="bi bi-shop"></i>
+                                    {% elif b.delivery_type.value == 'courier_pickup' %}<i class="bi bi-truck"></i>
+                                    {% elif b.delivery_type.value == 'home_visit' %}<i class="bi bi-house-check"></i>{% endif %}
+                                    {{ dt_labels.get(b.delivery_type.value, b.delivery_type.value) }}
+                                </span>
+                                {% if b.courier_cost and b.courier_cost > 0 %}
+                                    <br><small class="text-muted">+{{ "%.2f"|format(b.courier_cost/100) }} zł</small>
+                                {% endif %}
+                                {% if b.delivery_date_from %}
+                                    <br><small class="text-muted">od {{ b.delivery_date_from.strftime('%d.%m') }}</small>
+                                {% endif %}
+                            {% else %}
+                                <span class="text-muted small">—</span>
                             {% endif %}
                         </td>
                         <td>

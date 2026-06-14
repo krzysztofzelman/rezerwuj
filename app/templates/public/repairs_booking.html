@@ -1,0 +1,344 @@
+{% extends "base.html" %}
+{% block title %}Zgłoś naprawę — {{ provider.company_name or provider.name }}{% endblock %}
+{% block content %}
+<div class="container py-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="text-center mb-4">
+                <h1 class="h3 mb-1">🔧 Zgłoś sprzęt do naprawy</h1>
+                <p class="text-muted">{{ provider.company_name or provider.name }} — {{ location.city }}{% if location.district %}, {{ location.district }}{% endif %}</p>
+            </div>
+
+            <div class="card shadow-sm">
+                <div class="card-body p-4">
+                    <!-- Pasek postępu -->
+                    <div class="progress mb-4" style="height:6px;">
+                        <div id="progress-bar" class="progress-bar" style="width:25%;"></div>
+                    </div>
+                    <div class="d-flex justify-content-between mb-4 small text-muted">
+                        <span id="step1-label" class="fw-bold text-primary">1. Sprzęt</span>
+                        <span id="step2-label">2. Dostawa</span>
+                        <span id="step3-label">3. Dane</span>
+                        <span id="step4-label">4. Podsumowanie</span>
+                    </div>
+
+                    <form id="booking-form" novalidate>
+                        <input type="hidden" name="location_id" value="{{ location.id }}">
+
+                        <!-- === KROK 1: Sprzęt === -->
+                        <div id="step-1" class="step">
+                            <h6 class="fw-bold mb-3 border-bottom pb-2">Dane urządzenia</h6>
+                            <div class="row g-3">
+                                <div class="col-sm-6">
+                                    <label for="device_type" class="form-label small">Typ urządzenia *</label>
+                                    <select class="form-select" id="device_type" name="device_type" required>
+                                        <option value="">— Wybierz —</option>
+                                        <option value="pralka">Pralka</option>
+                                        <option value="lodówka">Lodówka / Zamrażarka</option>
+                                        <option value="piekarnik">Piekarnik / Kuchenka</option>
+                                        <option value="płyta_indukcyjna">Płyta indukcyjna</option>
+                                        <option value="zmywarka">Zmywarka</option>
+                                        <option value="mikrofalówka">Mikrofalówka</option>
+                                        <option value="ekspres_do_kawy">Ekspres do kawy</option>
+                                        <option value="odkurzacz">Odkurzacz</option>
+                                        <option value="telewizor">Telewizor / Monitor</option>
+                                        <option value="laptop">Laptop / Komputer</option>
+                                        <option value="konsola">Konsola do gier</option>
+                                        <option value="słuchawki">Słuchawki</option>
+                                        <option value="głośnik">Głośnik</option>
+                                        <option value="inny">Inne</option>
+                                    </select>
+                                </div>
+                                <div class="col-sm-6">
+                                    <label for="brand" class="form-label small">Marka</label>
+                                    <input type="text" class="form-control" id="brand" name="brand" placeholder="np. Samsung">
+                                </div>
+                                <div class="col-sm-6">
+                                    <label for="model_name" class="form-label small">Model</label>
+                                    <input type="text" class="form-control" id="model_name" name="model_name" placeholder="np. WW90T">
+                                </div>
+                                <div class="col-sm-6">
+                                    <label for="serial_number" class="form-label small">Numer seryjny</label>
+                                    <input type="text" class="form-control" id="serial_number" name="serial_number" placeholder="opcjonalnie">
+                                </div>
+                                <div class="col-12">
+                                    <label for="problem_description" class="form-label small">Opis usterki *</label>
+                                    <textarea class="form-control" id="problem_description" name="problem_description"
+                                              rows="3" placeholder="Opisz objawy usterki..." required minlength="5"></textarea>
+                                </div>
+                            </div>
+                            <div class="text-end mt-3">
+                                <button type="button" class="btn btn-primary" onclick="nextStep(2)">
+                                    Dalej <i class="bi bi-arrow-right"></i>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- === KROK 2: Dostawa === -->
+                        <div id="step-2" class="step" style="display:none;">
+                            <h6 class="fw-bold mb-3 border-bottom pb-2">Sposób dostawy</h6>
+                            <div class="mb-3">
+                                <label class="form-label small">Wybierz formę dostawy:</label>
+                                {% for dt in delivery_types %}
+                                {% set dt_label = delivery_labels.get(dt, dt) %}
+                                <div class="form-check border rounded p-3 mb-2 delivery-option" data-type="{{ dt }}">
+                                    <input class="form-check-input" type="radio" name="delivery_type"
+                                           id="dt-{{ dt }}" value="{{ dt }}" required
+                                           {% if loop.first %}checked{% endif %}>
+                                    <label class="form-check-label w-100" for="dt-{{ dt }}">
+                                        <div class="d-flex justify-content-between">
+                                            <span class="fw-medium">
+                                                {% if dt == 'self_delivery' %}<i class="bi bi-shop"></i>
+                                                {% elif dt == 'courier_pickup' %}<i class="bi bi-truck"></i>
+                                                {% elif dt == 'home_visit' %}<i class="bi bi-house-check"></i>{% endif %}
+                                                {{ dt_label }}
+                                            </span>
+                                        </div>
+                                    </label>
+                                </div>
+                                {% endfor %}
+                            </div>
+
+                            <div id="address-field" class="mb-3" style="display:none;">
+                                <label for="delivery_address" class="form-label small">Adres do wizyty serwisanta *</label>
+                                <textarea class="form-control" id="delivery_address" name="delivery_address"
+                                          rows="2" placeholder="ul. Przykładowa 123, 00-001 Warszawa"></textarea>
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="delivery_date_from" class="form-label small">Preferowana data rozpoczęcia</label>
+                                <input type="date" class="form-control" id="delivery_date_from" name="delivery_date_from"
+                                       min="{{ now().strftime('%Y-%m-%d') if now is defined else '' }}">
+                            </div>
+
+                            <div class="d-flex justify-content-between mt-3">
+                                <button type="button" class="btn btn-outline-secondary" onclick="prevStep(1)">
+                                    <i class="bi bi-arrow-left"></i> Wstecz
+                                </button>
+                                <button type="button" class="btn btn-primary" onclick="nextStep(3)">
+                                    Dalej <i class="bi bi-arrow-right"></i>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- === KROK 3: Dane klienta === -->
+                        <div id="step-3" class="step" style="display:none;">
+                            <h6 class="fw-bold mb-3 border-bottom pb-2">Twoje dane</h6>
+                            <div class="row g-3">
+                                <div class="col-sm-6">
+                                    <label for="client_name" class="form-label small">Imię *</label>
+                                    <input type="text" class="form-control" id="client_name" name="client_name" required minlength="2">
+                                </div>
+                                <div class="col-sm-6">
+                                    <label for="client_surname" class="form-label small">Nazwisko *</label>
+                                    <input type="text" class="form-control" id="client_surname" name="client_surname" required minlength="2">
+                                </div>
+                                <div class="col-sm-6">
+                                    <label for="client_phone" class="form-label small">Telefon *</label>
+                                    <input type="tel" class="form-control" id="client_phone" name="client_phone"
+                                           placeholder="+48 123 456 789" required>
+                                </div>
+                                <div class="col-sm-6">
+                                    <label for="client_email" class="form-label small">E-mail</label>
+                                    <input type="email" class="form-control" id="client_email" name="client_email"
+                                           placeholder="opcjonalnie">
+                                </div>
+                            </div>
+                            <div class="d-flex justify-content-between mt-3">
+                                <button type="button" class="btn btn-outline-secondary" onclick="prevStep(2)">
+                                    <i class="bi bi-arrow-left"></i> Wstecz
+                                </button>
+                                <button type="button" class="btn btn-primary" onclick="nextStep(4)">
+                                    Dalej <i class="bi bi-arrow-right"></i>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- === KROK 4: Podsumowanie === -->
+                        <div id="step-4" class="step" style="display:none;">
+                            <h6 class="fw-bold mb-3 border-bottom pb-2">📋 Podsumowanie zgłoszenia</h6>
+                            <div id="summary-content" class="mb-3"></div>
+                            <div class="alert alert-info py-2 small">
+                                <i class="bi bi-info-circle"></i>
+                                Po wysłaniu zgłoszenia otrzymasz SMS z potwierdzeniem i linkiem do śledzenia statusu naprawy.
+                            </div>
+                            <div class="d-flex justify-content-between mt-3">
+                                <button type="button" class="btn btn-outline-secondary" onclick="prevStep(3)">
+                                    <i class="bi bi-arrow-left"></i> Wstecz
+                                </button>
+                                <button type="submit" class="btn btn-success" id="submit-btn">
+                                    <i class="bi bi-check-lg"></i> Wyślij zgłoszenie
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+
+                    <!-- Komunikat po wysłaniu -->
+                    <div id="success-message" style="display:none;">
+                        <div class="text-center py-4">
+                            <i class="bi bi-check-circle text-success display-3"></i>
+                            <h4 class="mt-3">✅ Zgłoszenie wysłane!</h4>
+                            <p class="text-muted">Otrzymasz SMS z potwierdzeniem i linkiem do śledzenia naprawy.</p>
+                            <a href="/api/repairs/search" class="btn btn-primary mt-2">
+                                <i class="bi bi-search"></i> Szukaj kolejnego serwisu
+                            </a>
+                            <div id="tracking-link" class="mt-3"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+let currentStep = 1;
+const totalSteps = 4;
+const DELIVERY_LABELS = {{ delivery_labels|tojson|safe }};
+
+function updateProgress() {
+    const pct = (currentStep / totalSteps) * 100;
+    document.getElementById('progress-bar').style.width = pct + '%';
+    for (let i = 1; i <= totalSteps; i++) {
+        const label = document.getElementById('step' + i + '-label');
+        if (i === currentStep) {
+            label.className = 'fw-bold text-primary';
+        } else if (i < currentStep) {
+            label.className = 'text-success';
+        } else {
+            label.className = 'text-muted';
+        }
+    }
+}
+
+function showStep(n) {
+    for (let i = 1; i <= totalSteps; i++) {
+        document.getElementById('step-' + i).style.display = i === n ? 'block' : 'none';
+    }
+    currentStep = n;
+    updateProgress();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function nextStep(n) {
+    // Walidacja bieżącego kroku
+    const stepEl = document.getElementById('step-' + currentStep);
+    const inputs = stepEl.querySelectorAll('[required]');
+    for (const inp of inputs) {
+        if (!inp.value.trim()) {
+            inp.classList.add('is-invalid');
+            inp.focus();
+            return;
+        }
+        inp.classList.remove('is-invalid');
+    }
+
+    if (n === 4) {
+        buildSummary();
+    }
+
+    // Obsługa adresu dla home_visit
+    if (n === 3) {
+        const dt = document.querySelector('input[name="delivery_type"]:checked');
+        if (dt && dt.value === 'home_visit') {
+            document.getElementById('address-field').style.display = 'block';
+            document.getElementById('delivery_address').required = true;
+        } else {
+            document.getElementById('address-field').style.display = 'none';
+            document.getElementById('delivery_address').required = false;
+        }
+    }
+
+    showStep(n);
+}
+
+function prevStep(n) {
+    showStep(n);
+}
+
+function buildSummary() {
+    const data = getFormData();
+    const deliveryLabel = DELIVERY_LABELS[data.delivery_type] || data.delivery_type;
+    let html = `
+        <table class="table table-sm">
+            <tr><th class="w-25">Serwis</th><td>${escapeHtml(data.provider_name)}</td></tr>
+            <tr><th>Sprzęt</th><td>${data.device_type}${data.brand ? ', ' + escapeHtml(data.brand) : ''}${data.model_name ? ' (' + escapeHtml(data.model_name) + ')' : ''}</td></tr>
+            <tr><th>Opis usterki</th><td>${escapeHtml(data.problem_description.substring(0, 100))}${data.problem_description.length > 100 ? '...' : ''}</td></tr>
+            <tr><th>Dostawa</th><td>${deliveryLabel}</td></tr>
+            ${data.delivery_address ? `<tr><th>Adres</th><td>${escapeHtml(data.delivery_address)}</td></tr>` : ''}
+            ${data.delivery_date_from ? `<tr><th>Data od</th><td>${data.delivery_date_from}</td></tr>` : ''}
+            <tr><th>Klient</th><td>${escapeHtml(data.client_name)} ${escapeHtml(data.client_surname)}</td></tr>
+            <tr><th>Telefon</th><td>${escapeHtml(data.client_phone)}</td></tr>
+            ${data.client_email ? `<tr><th>E-mail</th><td>${escapeHtml(data.client_email)}</td></tr>` : ''}
+            <tr class="table-primary"><th>Cena bazowa</th><td><strong>${data.repair_price.toFixed(2)} zł</strong></td></tr>
+        </table>`;
+    document.getElementById('summary-content').innerHTML = html;
+}
+
+function getFormData() {
+    return {
+        location_id: {{ location.id }},
+        provider_name: '{{ provider.company_name or provider.name }}',
+        repair_price: {{ repair_price_pln }},
+        device_type: document.getElementById('device_type').value,
+        brand: document.getElementById('brand').value,
+        model_name: document.getElementById('model_name').value,
+        serial_number: document.getElementById('serial_number').value,
+        problem_description: document.getElementById('problem_description').value,
+        delivery_type: document.querySelector('input[name="delivery_type"]:checked')?.value || 'self_delivery',
+        delivery_address: document.getElementById('delivery_address').value,
+        delivery_date_from: document.getElementById('delivery_date_from').value,
+        client_name: document.getElementById('client_name').value,
+        client_surname: document.getElementById('client_surname').value,
+        client_phone: document.getElementById('client_phone').value,
+        client_email: document.getElementById('client_email').value,
+    };
+}
+
+document.getElementById('booking-form').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    const btn = document.getElementById('submit-btn');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Wysyłanie...';
+
+    const data = getFormData();
+
+    try {
+        const resp = await fetch('/api/repairs/create', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+        });
+
+        const result = await resp.json();
+
+        if (!resp.ok || !result.success) {
+            alert(result.error || 'Wystąpił błąd podczas wysyłania zgłoszenia.');
+            btn.disabled = false;
+            btn.innerHTML = '<i class="bi bi-check-lg"></i> Wyślij zgłoszenie';
+            return;
+        }
+
+        // Sukces
+        document.getElementById('booking-form').style.display = 'none';
+        document.getElementById('success-message').style.display = 'block';
+        if (result.tracking_url) {
+            document.getElementById('tracking-link').innerHTML =
+                `<a href="${result.tracking_url}" class="btn btn-outline-primary">
+                    <i class="bi bi-truck"></i> Śledź naprawę
+                </a>`;
+        }
+    } catch (err) {
+        alert('Błąd połączenia. Spróbuj ponownie.');
+        btn.disabled = false;
+        btn.innerHTML = '<i class="bi bi-check-lg"></i> Wyślij zgłoszenie';
+    }
+});
+
+function escapeHtml(str) {
+    const div = document.createElement('div');
+    div.textContent = str;
+    return div.innerHTML;
+}
+</script>
+{% endblock %}

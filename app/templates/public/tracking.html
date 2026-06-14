@@ -1,0 +1,169 @@
+{% extends "base.html" %}
+{% block title %}Śledzenie naprawy #{{ order.id }} — Napraw Mnie{% endblock %}
+{% block content %}
+<div class="container py-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="text-center mb-4">
+                <h1 class="h3 mb-1">📱 Śledzenie naprawy</h1>
+                <p class="text-muted">Zlecenie #{{ order.id }} — {{ provider.company_name or provider.name }}</p>
+            </div>
+
+            <!-- Status główny -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-body text-center p-4">
+                    <div class="display-6 mb-2">
+                        {% if order.status_order.value == 'pending' %}
+                            <span class="text-info"><i class="bi bi-clock"></i></span>
+                        {% elif order.status_order.value == 'confirmed' %}
+                            <span class="text-primary"><i class="bi bi-check-circle"></i></span>
+                        {% elif order.status_order.value == 'in_progress' %}
+                            <span class="text-warning"><i class="bi bi-gear-wide-connected"></i></span>
+                        {% elif order.status_order.value == 'completed' %}
+                            <span class="text-success"><i class="bi bi-check-all"></i></span>
+                        {% elif order.status_order.value == 'cancelled' %}
+                            <span class="text-danger"><i class="bi bi-x-circle"></i></span>
+                        {% endif %}
+                    </div>
+                    <h4>{{ status_label }}</h4>
+                    <p class="text-muted small mb-0">
+                        Zgłoszone: {{ order.created_at.strftime('%d.%m.%Y %H:%M') if order.created_at else '' }}
+                    </p>
+                </div>
+            </div>
+
+            <!-- Oś czasu -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-white">
+                    <h6 class="mb-0"><i class="bi bi-list-steps"></i> Postęp naprawy</h6>
+                </div>
+                <div class="card-body">
+                    <div class="timeline">
+                        {% for step in timeline %}
+                            <div class="d-flex mb-3">
+                                <div class="me-3 text-center" style="width:32px;">
+                                    {% if step.is_current %}
+                                        <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center" style="width:32px;height:32px;">
+                                            <i class="bi bi-chevron-right small"></i>
+                                        </div>
+                                    {% elif step.is_past %}
+                                        <div class="rounded-circle bg-success text-white d-flex align-items-center justify-content-center" style="width:32px;height:32px;">
+                                            <i class="bi bi-check small"></i>
+                                        </div>
+                                    {% else %}
+                                        <div class="rounded-circle bg-light text-muted d-flex align-items-center justify-content-center border" style="width:32px;height:32px;">
+                                            <i class="bi bi-circle small"></i>
+                                        </div>
+                                    {% endif %}
+                                </div>
+                                <div class="flex-grow-1 {% if not step.is_past and not step.is_current %}text-muted{% endif %}">
+                                    <div class="fw-medium">{{ step.label }}</div>
+                                    {% if step.date %}
+                                        <small class="text-muted">{{ step.date }}</small>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Szczegóły zlecenia -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-white">
+                    <h6 class="mb-0"><i class="bi bi-info-circle"></i> Szczegóły zlecenia</h6>
+                </div>
+                <div class="card-body">
+                    <table class="table table-sm">
+                        <tr>
+                            <th class="w-25">Sprzęt</th>
+                            <td>
+                                {% if order.brand %}{{ order.brand }}{% endif %}
+                                {% if order.model_name %} {{ order.model_name }}{% endif %}
+                                {% if order.device_type %}<span class="badge bg-light text-dark ms-1">{{ order.device_type }}</span>{% endif %}
+                            </td>
+                        </tr>
+                        {% if order.serial_number %}
+                        <tr>
+                            <th>Nr seryjny</th>
+                            <td>{{ order.serial_number }}</td>
+                        </tr>
+                        {% endif %}
+                        {% if order.problem_description %}
+                        <tr>
+                            <th>Opis usterki</th>
+                            <td>{{ order.problem_description }}</td>
+                        </tr>
+                        {% endif %}
+                        {% if delivery_label %}
+                        <tr>
+                            <th>Dostawa</th>
+                            <td>{{ delivery_label }}</td>
+                        </tr>
+                        {% endif %}
+                        {% if order.delivery_address %}
+                        <tr>
+                            <th>Adres</th>
+                            <td>{{ order.delivery_address }}</td>
+                        </tr>
+                        {% endif %}
+                        {% if order.notes %}
+                        <tr>
+                            <th>Informacje od serwisu</th>
+                            <td class="text-muted fst-italic">{{ order.notes }}</td>
+                        </tr>
+                        {% endif %}
+                    </table>
+                </div>
+            </div>
+
+            <!-- Podsumowanie cen -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-white">
+                    <h6 class="mb-0"><i class="bi bi-cash"></i> Koszty</h6>
+                </div>
+                <div class="card-body">
+                    <table class="table table-sm">
+                        <tr>
+                            <th>Koszt naprawy</th>
+                            <td class="text-end">{{ "%.2f"|format(repair_cost_pln) }} zł</td>
+                        </tr>
+                        {% if courier_cost_pln > 0 %}
+                        <tr>
+                            <th>Koszt kuriera</th>
+                            <td class="text-end">{{ "%.2f"|format(courier_cost_pln) }} zł</td>
+                        </tr>
+                        {% endif %}
+                        <tr class="table-primary fw-bold">
+                            <th>Suma</th>
+                            <td class="text-end">{{ "%.2f"|format(total_cost_pln) }} zł</td>
+                        </tr>
+                        <tr>
+                            <td colspan="2" class="small text-muted">
+                                <i class="bi bi-info-circle"></i>
+                                Płatność gotówką przy odbiorze lub przelewem po zakończeniu naprawy.
+                            </td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Kontakt -->
+            <div class="card shadow-sm">
+                <div class="card-header bg-white">
+                    <h6 class="mb-0"><i class="bi bi-telephone"></i> Kontakt z serwisem</h6>
+                </div>
+                <div class="card-body">
+                    <p class="mb-1"><strong>{{ provider.company_name or provider.name }}</strong></p>
+                    {% if provider.phone %}
+                        <p class="mb-0"><a href="tel:{{ provider.phone }}">{{ provider.phone }}</a></p>
+                    {% endif %}
+                    {% if provider.email %}
+                        <p class="mb-0"><a href="mailto:{{ provider.email }}">{{ provider.email }}</a></p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

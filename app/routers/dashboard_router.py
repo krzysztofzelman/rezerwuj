@@ -1,4 +1,5 @@
 import datetime
+import json
 import logging
 
 from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
@@ -7,7 +8,7 @@ from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app.models import ServiceProvider, WorkingHour, Order, BlockedSlot, Service
+from app.models import ServiceProvider, WorkingHour, Order, BlockedSlot, Service, ServiceProviderLocation
 from app.schemas import (
     SettingsUpdate,
     HoursUpdate,
@@ -285,13 +286,21 @@ def booking_export_ics(
 # ===== Ustawienia =====
 
 @router.get("/dashboard/ustawienia")
-def settings_page(request: Request):
+def settings_page(request: Request, db: Session = Depends(get_db)):
     """Strona ustawień."""
+    provider = _get_provider(request)
+    locations = (
+        db.query(ServiceProviderLocation)
+        .filter(ServiceProviderLocation.provider_id == provider.id)
+        .all()
+    )
     return templates.TemplateResponse(
         "dashboard/settings.html",
         {
             **_get_dashboard_context(request),
             "today": datetime.date.today(),
+            "locations": locations,
+            "delivery_type_choices": ["self_delivery", "courier_pickup", "home_visit"],
         },
     )
 
@@ -311,12 +320,15 @@ async def update_settings(request: Request, db: Session = Depends(get_db)):
             require_deposit=form.get("require_deposit") == "on",
             deposit_amount=int(float(form.get("deposit_amount", 0)) * 100) if form.get("deposit_amount") else None,
         )
-    except (ValueError, TypeError) as e:
+    except Exception as e:
         return templates.TemplateResponse(
             "dashboard/settings.html",
             {
                 **_get_dashboard_context(request),
                 "error": f"Nieprawidłowa wartość: {e}",
+                "today": datetime.date.today(),
+                "locations": db.query(ServiceProviderLocation).filter(ServiceProviderLocation.provider_id == provider.id).all(),
+                "delivery_type_choices": ["self_delivery", "courier_pickup", "home_visit"],
             },
         )
 
@@ -339,6 +351,9 @@ async def update_settings(request: Request, db: Session = Depends(get_db)):
         {
             **_get_dashboard_context(request),
             "success": "Ustawienia zostały zapisane",
+            "today": datetime.date.today(),
+            "locations": db.query(ServiceProviderLocation).filter(ServiceProviderLocation.provider_id == provider.id).all(),
+            "delivery_type_choices": ["self_delivery", "courier_pickup", "home_visit"],
         },
     )
 
@@ -402,6 +417,9 @@ async def update_hours(request: Request, db: Session = Depends(get_db)):
         {
             **_get_dashboard_context(request),
             "success": "Godziny pracy zostały zapisane",
+            "today": datetime.date.today(),
+            "locations": db.query(ServiceProviderLocation).filter(ServiceProviderLocation.provider_id == provider.id).all(),
+            "delivery_type_choices": ["self_delivery", "courier_pickup", "home_visit"],
         },
     )
 
@@ -425,6 +443,15 @@ async def block_slot(request: Request, db: Session = Depends(get_db)):
     provider = _get_provider(request)
     form = await request.form()
 
+    today = datetime.date.today()
+    locations = db.query(ServiceProviderLocation).filter(ServiceProviderLocation.provider_id == provider.id).all()
+    _settings_base = {
+        **_get_dashboard_context(request),
+        "today": today,
+        "locations": locations,
+        "delivery_type_choices": ["self_delivery", "courier_pickup", "home_visit"],
+    }
+
     try:
         block_data = BlockSlotRequest(
             block_date=form.get("block_date", ""),
@@ -432,13 +459,10 @@ async def block_slot(request: Request, db: Session = Depends(get_db)):
             end_time=form.get("end_time", ""),
             reason=form.get("reason", ""),
         )
-    except ValueError as e:
+    except Exception as e:
         return templates.TemplateResponse(
             "dashboard/settings.html",
-            {
-                **_get_dashboard_context(request),
-                "error": f"Nieprawidłowe dane blokady: {e}",
-            },
+            {**_settings_base, "error": f"Nieprawidłowe dane blokady: {e}"},
         )
 
     try:
@@ -448,19 +472,13 @@ async def block_slot(request: Request, db: Session = Depends(get_db)):
     except ValueError:
         return templates.TemplateResponse(
             "dashboard/settings.html",
-            {
-                **_get_dashboard_context(request),
-                "error": "Nieprawidłowy format daty lub czasu",
-            },
+            {**_settings_base, "error": "Nieprawidłowy format daty lub czasu"},
         )
 
     if end <= start:
         return templates.TemplateResponse(
             "dashboard/settings.html",
-            {
-                **_get_dashboard_context(request),
-                "error": "Czas zakończenia musi być późniejszy niż rozpoczęcia",
-            },
+            {**_settings_base, "error": "Czas zakończenia musi być późniejszy niż rozpoczęcia"},
         )
 
     blocked = BlockedSlot(
@@ -475,10 +493,7 @@ async def block_slot(request: Request, db: Session = Depends(get_db)):
 
     return templates.TemplateResponse(
         "dashboard/settings.html",
-        {
-            **_get_dashboard_context(request),
-            "success": "Termin został zablokowany",
-        },
+        {**_settings_base, "success": "Termin został zablokowany"},
     )
 
 
@@ -724,7 +739,7 @@ async def services_create(request: Request, db: Session = Depends(get_db)):
             duration=int(form.get("duration", 60)),
             price=int(float(form.get("price", 0)) * 100),  # zł → grosze
         )
-    except (ValueError, TypeError) as e:
+    except Exception as e:
         return templates.TemplateResponse(
             "dashboard/services.html",
             {
@@ -786,3 +801,73 @@ def services_delete(service_id: int, request: Request, db: Session = Depends(get
     service.is_active = False
     db.commit()
     return RedirectResponse(url="/dashboard/uslugi", status_code=302)
+
+
+# ===== Lokalizacje serwisu (B2C Marketplace) =====
+
+
+@router.post("/dashboard/lokalizacje/dodaj")
+async def location_create(request: Request, db: Session = Depends(get_db)):
+    """Dodaje nową lokalizację serwisu."""
+    provider = _get_provider(request)
+    form = await request.form()
+
+    delivery_types = form.getlist("delivery_types")
+
+    location = ServiceProviderLocation(
+        provider_id=provider.id,
+        city=form.get("city", "").strip(),
+        district=form.get("district", "").strip(),
+        address=form.get("address", "").strip(),
+        delivery_types=json.dumps(delivery_types),
+        repair_price=int(float(form.get("repair_price", "0").replace(",", ".")) * 100),
+        is_online=form.get("is_online") == "on",
+    )
+    db.add(location)
+    db.commit()
+
+    return RedirectResponse(url="/dashboard/ustawienia?tab=lokalizacje", status_code=302)
+
+
+@router.post("/dashboard/lokalizacje/{location_id}/edytuj")
+async def location_update(location_id: int, request: Request, db: Session = Depends(get_db)):
+    """Edycja lokalizacji serwisu."""
+    provider = _get_provider(request)
+    location = (
+        db.query(ServiceProviderLocation)
+        .filter(ServiceProviderLocation.id == location_id, ServiceProviderLocation.provider_id == provider.id)
+        .first()
+    )
+    if not location:
+        raise HTTPException(status_code=404, detail="Lokalizacja nie istnieje")
+
+    form = await request.form()
+
+    delivery_types = form.getlist("delivery_types")
+
+    location.city = form.get("city", location.city).strip()
+    location.district = form.get("district", location.district).strip()
+    location.address = form.get("address", location.address).strip()
+    location.delivery_types = json.dumps(delivery_types)
+    location.repair_price = int(float(form.get("repair_price", "0").replace(",", ".")) * 100)
+    location.is_online = form.get("is_online") == "on"
+    db.commit()
+
+    return RedirectResponse(url="/dashboard/ustawienia?tab=lokalizacje", status_code=302)
+
+
+@router.post("/dashboard/lokalizacje/{location_id}/usun")
+def location_delete(location_id: int, request: Request, db: Session = Depends(get_db)):
+    """Usuwa lokalizację serwisu."""
+    provider = _get_provider(request)
+    location = (
+        db.query(ServiceProviderLocation)
+        .filter(ServiceProviderLocation.id == location_id, ServiceProviderLocation.provider_id == provider.id)
+        .first()
+    )
+    if not location:
+        raise HTTPException(status_code=404, detail="Lokalizacja nie istnieje")
+
+    db.delete(location)
+    db.commit()
+    return RedirectResponse(url="/dashboard/ustawienia?tab=lokalizacje", status_code=302)

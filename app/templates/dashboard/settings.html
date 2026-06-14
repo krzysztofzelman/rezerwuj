@@ -3,7 +3,153 @@
 {% block dashboard_content %}
 <h1 class="h4 mb-4">Ustawienia</h1>
 
-<div class="row g-4">
+<ul class="nav nav-tabs mb-4">
+    <li class="nav-item">
+        <a class="nav-link {% if request.query_params.get('tab') != 'lokalizacje' %}active{% endif %}" href="/dashboard/ustawienia">Ogólne</a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link {% if request.query_params.get('tab') == 'lokalizacje' %}active{% endif %}" href="/dashboard/ustawienia?tab=lokalizacje">Lokalizacje (B2C)</a>
+    </li>
+</ul>
+
+{% if request.query_params.get('tab') == 'lokalizacje' %}
+    <!-- === LOKALIZACJE B2C === -->
+    <div class="row g-4">
+        <div class="col-lg-6">
+            <div class="card shadow-sm">
+                <div class="card-header bg-white">
+                    <h6 class="mb-0"><i class="bi bi-geo-alt"></i> Twoje lokalizacje</h6>
+                </div>
+                <div class="card-body">
+                    {% if locations %}
+                        {% for loc in locations %}
+                            <div class="border rounded p-3 mb-2">
+                                <form method="POST" action="/dashboard/lokalizacje/{{ loc.id }}/edytuj">
+                                    <div class="row g-2">
+                                        <div class="col-md-4">
+                                            <label class="small text-muted">Miasto</label>
+                                            <input type="text" class="form-control form-control-sm" name="city" value="{{ loc.city }}" required>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <label class="small text-muted">Dzielnica</label>
+                                            <input type="text" class="form-control form-control-sm" name="district" value="{{ loc.district }}">
+                                        </div>
+                                        <div class="col-md-5">
+                                            <label class="small text-muted">Adres</label>
+                                            <input type="text" class="form-control form-control-sm" name="address" value="{{ loc.address }}">
+                                        </div>
+                                        <div class="col-md-4">
+                                            <label class="small text-muted">Cena naprawy (zł)</label>
+                                            <input type="number" class="form-control form-control-sm" name="repair_price"
+                                                   value="{{ '%.2f'|format(loc.repair_price/100) }}" step="0.01" min="0">
+                                        </div>
+                                        <div class="col-md-8">
+                                            <label class="small text-muted">Formy dostawy</label>
+                                            <div class="d-flex flex-wrap gap-2">
+                                                {% for dt in delivery_type_choices %}
+                                                    <div class="form-check form-check-inline">
+                                                        <input class="form-check-input" type="checkbox"
+                                                               name="delivery_types" value="{{ dt }}"
+                                                               id="dt-{{ loc.id }}-{{ dt }}"
+                                                               {% if dt in loc.delivery_types_list %}checked{% endif %}>
+                                                        <label class="form-check-label small" for="dt-{{ loc.id }}-{{ dt }}">
+                                                            {% if dt == 'self_delivery' %}Odbiór
+                                                            {% elif dt == 'courier_pickup' %}Kurier
+                                                            {% elif dt == 'home_visit' %}Dojazd{% endif %}
+                                                        </label>
+                                                    </div>
+                                                {% endfor %}
+                                            </div>
+                                        </div>
+                                        <div class="col-12">
+                                            <div class="form-check form-check-inline">
+                                                <input class="form-check-input" type="checkbox" name="is_online" id="online-{{ loc.id }}"
+                                                       {% if loc.is_online %}checked{% endif %}>
+                                                <label class="form-check-label small" for="online-{{ loc.id }}">Widoczny w wyszukiwarce</label>
+                                            </div>
+                                        </div>
+                                        <div class="col-12 d-flex gap-2">
+                                            <button type="submit" class="btn btn-sm btn-outline-primary">
+                                                <i class="bi bi-check"></i> Zapisz
+                                            </button>
+                                            <form method="POST" action="/dashboard/lokalizacje/{{ loc.id }}/usun" class="d-inline"
+                                                  onsubmit="return confirm('Usunąć lokalizację {{ loc.city }}?')">
+                                                <button type="submit" class="btn btn-sm btn-outline-danger">
+                                                    <i class="bi bi-trash"></i> Usuń
+                                                </button>
+                                            </form>
+                                        </div>
+                                    </div>
+                                </form>
+                            </div>
+                        {% endfor %}
+                    {% else %}
+                        <p class="text-muted small text-center py-3">Brak dodanych lokalizacji. Dodaj pierwszą lokalizację, aby pojawić się w wyszukiwarce B2C.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-6">
+            <div class="card shadow-sm">
+                <div class="card-header bg-white">
+                    <h6 class="mb-0"><i class="bi bi-plus-circle"></i> Dodaj lokalizację</h6>
+                </div>
+                <div class="card-body">
+                    <form method="POST" action="/dashboard/lokalizacje/dodaj">
+                        <div class="row g-2">
+                            <div class="col-md-6">
+                                <label class="form-label small">Miasto *</label>
+                                <input type="text" class="form-control form-control-sm" name="city" required placeholder="Warszawa">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label small">Dzielnica</label>
+                                <input type="text" class="form-control form-control-sm" name="district" placeholder="Mokotów">
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label small">Adres</label>
+                                <input type="text" class="form-control form-control-sm" name="address" placeholder="ul. Przykładowa 123">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label small">Cena bazowa naprawy (zł)</label>
+                                <input type="number" class="form-control form-control-sm" name="repair_price" step="0.01" min="0" value="0">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label small">Formy dostawy</label>
+                                <div class="d-flex flex-wrap gap-2">
+                                    {% for dt in delivery_type_choices %}
+                                        <div class="form-check form-check-inline">
+                                            <input class="form-check-input" type="checkbox" name="delivery_types" value="{{ dt }}"
+                                                   id="dt-new-{{ dt }}" checked>
+                                            <label class="form-check-label small" for="dt-new-{{ dt }}">
+                                                {% if dt == 'self_delivery' %}Odbiór
+                                                {% elif dt == 'courier_pickup' %}Kurier
+                                                {% elif dt == 'home_visit' %}Dojazd{% endif %}
+                                            </label>
+                                        </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                            <div class="col-12">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" name="is_online" id="online-new" checked>
+                                    <label class="form-check-label small" for="online-new">Widoczny w wyszukiwarce</label>
+                                </div>
+                            </div>
+                            <div class="col-12">
+                                <button type="submit" class="btn btn-primary btn-sm">
+                                    <i class="bi bi-plus-lg"></i> Dodaj lokalizację
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+{% else %}
+    <!-- === ISTNIEJĄCA TREŚĆ USTAWIEŃ === -->
+    <div class="row g-4">
     <!-- Profil -->
     <div class="col-lg-6">
         <div class="card shadow-sm h-100">
@@ -170,6 +316,7 @@
         </div>
     </div>
 </div>
+{% endif %}
 {% endblock %}
 
 {% block extra_scripts %}

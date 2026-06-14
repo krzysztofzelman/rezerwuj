@@ -69,6 +69,15 @@
                 {% if b.brand %}
                     <span class="badge bg-light text-dark">{{ b.brand }}{% if b.model_name %} {{ b.model_name }}{% endif %}</span>
                 {% endif %}
+                {% if b.delivery_type %}
+                    {% set dt_icon = {'self_delivery': 'bi-shop', 'courier_pickup': 'bi-truck', 'home_visit': 'bi-house-check'} %}
+                    <span class="badge bg-info bg-opacity-25 text-dark small">
+                        <i class="bi {{ dt_icon.get(b.delivery_type.value, 'bi-tools') }}"></i>
+                        {% if b.delivery_type.value == 'self_delivery' %}Odbiór
+                        {% elif b.delivery_type.value == 'courier_pickup' %}Kurier
+                        {% elif b.delivery_type.value == 'home_visit' %}Dojazd{% endif %}
+                    </span>
+                {% endif %}
                 <span class="ms-auto">
                     {% if b.paid %}
                         <span class="badge bg-success">Opłacone</span>
@@ -91,6 +100,15 @@
                 <span class="text-muted small">{{ b.client_phone }}</span>
                 {% if b.brand %}
                     <span class="badge bg-light text-dark">{{ b.brand }}{% if b.model_name %} {{ b.model_name }}{% endif %}</span>
+                {% endif %}
+                {% if b.delivery_type %}
+                    {% set dt_icon = {'self_delivery': 'bi-shop', 'courier_pickup': 'bi-truck', 'home_visit': 'bi-house-check'} %}
+                    <span class="badge bg-info bg-opacity-25 text-dark small">
+                        <i class="bi {{ dt_icon.get(b.delivery_type.value, 'bi-tools') }}"></i>
+                        {% if b.delivery_type.value == 'self_delivery' %}Odbiór
+                        {% elif b.delivery_type.value == 'courier_pickup' %}Kurier
+                        {% elif b.delivery_type.value == 'home_visit' %}Dojazd{% endif %}
+                    </span>
                 {% endif %}
             </div>
         {% endfor %}

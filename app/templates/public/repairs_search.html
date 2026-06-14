@@ -1,0 +1,227 @@
+{% extends "base.html" %}
+{% block title %}Znajdź serwis naprawczy — Napraw Mnie{% endblock %}
+{% block extra_head %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+{% endblock %}
+{% block content %}
+<div class="container py-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-10">
+            <div class="text-center mb-4">
+                <h1 class="h3 mb-1">🔧 Znajdź serwis naprawczy</h1>
+                <p class="text-muted">Wyszukaj profesjonalny serwis RTV/AGD w Twojej okolicy</p>
+            </div>
+
+            <!-- Formularz wyszukiwania -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-body p-4">
+                    <form id="search-form" class="row g-3" onsubmit="return searchRepairs(event)">
+                        <div class="col-md-4">
+                            <label for="city" class="form-label small">Miasto *</label>
+                            <input type="text" class="form-control" id="city" name="city"
+                                   placeholder="np. Warszawa" required>
+                        </div>
+                        <div class="col-md-3">
+                            <label for="district" class="form-label small">Dzielnica</label>
+                            <input type="text" class="form-control" id="district" name="district"
+                                   placeholder="np. Mokotów">
+                        </div>
+                        <div class="col-md-3">
+                            <label for="device_category" class="form-label small">Typ urządzenia</label>
+                            <select class="form-select" id="device_category" name="device_category">
+                                <option value="">— Wszystkie —</option>
+                                <option value="pralka">Pralka</option>
+                                <option value="lodówka">Lodówka / Zamrażarka</option>
+                                <option value="piekarnik">Piekarnik / Kuchenka</option>
+                                <option value="zmywarka">Zmywarka</option>
+                                <option value="telewizor">Telewizor / Monitor</option>
+                                <option value="laptop">Laptop / Komputer</option>
+                                <option value="odkurzacz">Odkurzacz</option>
+                                <option value="inny">Inne</option>
+                            </select>
+                        </div>
+                        <div class="col-md-2 d-flex align-items-end">
+                            <button type="submit" class="btn btn-primary w-100">
+                                <i class="bi bi-search"></i> Szukaj
+                            </button>
+                        </div>
+                    </form>
+
+                    <!-- Filtry dodatkowe -->
+                    <div class="mt-3">
+                        <label class="form-label small text-muted">Preferowana forma dostawy:</label>
+                        <div class="d-flex flex-wrap gap-3" id="delivery-filters">
+                            <div class="form-check">
+                                <input class="form-check-input delivery-filter" type="radio" name="delivery_type"
+                                       id="dt-any" value="" checked>
+                                <label class="form-check-label small" for="dt-any">Dowolna</label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input delivery-filter" type="radio" name="delivery_type"
+                                       id="dt-self" value="self_delivery">
+                                <label class="form-check-label small" for="dt-self">
+                                    <i class="bi bi-shop"></i> Odbiór własny
+                                </label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input delivery-filter" type="radio" name="delivery_type"
+                                       id="dt-courier" value="courier_pickup">
+                                <label class="form-check-label small" for="dt-courier">
+                                    <i class="bi bi-truck"></i> Kurier
+                                </label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input delivery-filter" type="radio" name="delivery_type"
+                                       id="dt-home" value="home_visit">
+                                <label class="form-check-label small" for="dt-home">
+                                    <i class="bi bi-house-check"></i> Dojazd
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Komunikat ładowania -->
+            <div id="search-loading" class="text-center py-4" style="display:none;">
+                <div class="spinner-border text-primary" role="status"></div>
+                <p class="mt-2 text-muted">Wyszukiwanie serwisów...</p>
+            </div>
+
+            <!-- Komunikat błędu -->
+            <div id="search-error" class="alert alert-danger" style="display:none;"></div>
+
+            <!-- Wyniki -->
+            <div id="search-results"></div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+// Dodaj obsługę radiobuttonów do automatycznego przeszukiwania
+document.querySelectorAll('.delivery-filter').forEach(el => {
+    el.addEventListener('change', function() {
+        if (document.getElementById('city').value.trim().length >= 2) {
+            searchRepairs(new Event('change'));
+        }
+    });
+});
+
+async function searchRepairs(event) {
+    event.preventDefault();
+
+    const city = document.getElementById('city').value.trim();
+    if (city.length < 2) {
+        document.getElementById('city').classList.add('is-invalid');
+        return false;
+    }
+    document.getElementById('city').classList.remove('is-invalid');
+
+    const district = document.getElementById('district').value.trim();
+    const device_category = document.getElementById('device_category').value;
+    const delivery_type = document.querySelector('input[name="delivery_type"]:checked')?.value || '';
+
+    const resultsDiv = document.getElementById('search-results');
+    const loadingDiv = document.getElementById('search-loading');
+    const errorDiv = document.getElementById('search-error');
+
+    resultsDiv.innerHTML = '';
+    errorDiv.style.display = 'none';
+    loadingDiv.style.display = 'block';
+
+    try {
+        const resp = await fetch('/api/repairs/search', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                city: city,
+                district: district,
+                device_category: device_category,
+                delivery_type: delivery_type
+            })
+        });
+
+        const data = await resp.json();
+        loadingDiv.style.display = 'none';
+
+        if (!resp.ok) {
+            errorDiv.textContent = data.error || 'Wystąpił błąd wyszukiwania.';
+            errorDiv.style.display = 'block';
+            return false;
+        }
+
+        if (data.count === 0) {
+            resultsDiv.innerHTML = '<div class="text-center py-5 text-muted"><i class="bi bi-search display-4"></i><p class="mt-2">Brak serwisów w tej okolicy. Spróbuj zmienić kryteria wyszukiwania.</p></div>';
+            return false;
+        }
+
+        let html = `<p class="text-muted mb-3">Znaleziono <strong>${data.count}</strong> serwisów</p><div class="row g-3">`;
+
+        for (const r of data.results) {
+            const stars = renderStars(r.avg_rating);
+            const deliveryBadges = r.delivery_types.map(dt => {
+                const labels = {
+                    'self_delivery': '<span class="badge bg-light text-dark me-1"><i class="bi bi-shop"></i> Odbiór</span>',
+                    'courier_pickup': '<span class="badge bg-light text-dark me-1"><i class="bi bi-truck"></i> Kurier</span>',
+                    'home_visit': '<span class="badge bg-light text-dark me-1"><i class="bi bi-house-check"></i> Dojazd</span>'
+                };
+                return labels[dt] || dt;
+            }).join('');
+
+            html += `
+                <div class="col-md-6">
+                    <div class="card shadow-sm h-100">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-start">
+                                <div>
+                                    <h5 class="card-title mb-1">${escapeHtml(r.provider_name)}</h5>
+                                    <p class="text-muted small mb-1">
+                                        <i class="bi bi-geo-alt"></i> ${escapeHtml(r.city)}${r.district ? ', ' + escapeHtml(r.district) : ''}
+                                    </p>
+                                </div>
+                                <span class="text-warning">${stars}</span>
+                            </div>
+                            <p class="fs-5 fw-bold text-primary mb-2">${r.repair_price_pln.toFixed(2)} zł</p>
+                            <div class="mb-2">${deliveryBadges}</div>
+                            <a href="/api/repairs/booking/${r.id}" class="btn btn-primary btn-sm">
+                                <i class="bi bi-wrench"></i> Zgłoś naprawę
+                            </a>
+                            ${r.phone ? `<a href="tel:${r.phone}" class="btn btn-outline-secondary btn-sm ms-1"><i class="bi bi-telephone"></i></a>` : ''}
+                        </div>
+                    </div>
+                </div>`;
+        }
+
+        html += '</div>';
+        resultsDiv.innerHTML = html;
+
+    } catch (err) {
+        loadingDiv.style.display = 'none';
+        errorDiv.textContent = 'Wystąpił błąd połączenia. Spróbuj ponownie.';
+        errorDiv.style.display = 'block';
+    }
+
+    return false;
+}
+
+function renderStars(rating) {
+    const full = Math.floor(rating);
+    const half = rating - full >= 0.5;
+    let s = '';
+    for (let i = 0; i < 5; i++) {
+        if (i < full) s += '<i class="bi bi-star-fill"></i>';
+        else if (i === full && half) s += '<i class="bi bi-star-half"></i>';
+        else s += '<i class="bi bi-star"></i>';
+    }
+    return s;
+}
+
+function escapeHtml(str) {
+    const div = document.createElement('div');
+    div.textContent = str;
+    return div.innerHTML;
+}
+</script>
+{% endblock %}
