@@ -1,5 +1,5 @@
 #!/bin/bash
-# Skrypt inicjalizujący wdrożenie Rezerwuj na VPS
+# Skrypt inicjalizujący wdrożenie ServiceHub na VPS
 # Uruchom: bash scripts/deploy.sh
 set -e
 
@@ -19,7 +19,7 @@ fi
 echo "=== Krok 2: Konfiguracja .env.production ==="
 if [ ! -f "$REPO_DIR/.env.production" ]; then
     cat > .env.production << 'EOF'
-DATABASE_URL=sqlite:///./data/rezerwuj.db
+DATABASE_URL=sqlite:///./data/servicehub.db
 SECRET_KEY=change-this-to-a-long-random-secret-key-for-production
 SITE_URL=https://$DOMAIN
 STRIPE_SECRET_KEY=
@@ -27,7 +27,7 @@ STRIPE_PUBLISHABLE_KEY=
 STRIPE_WEBHOOK_SECRET=
 SUBSCRIPTION_PRICE_ID=
 SMS_API_KEY=
-SMS_SENDER=Rezerwuj
+SMS_SENDER=ServiceHub
 SMS_MOCK=true
 TRIAL_DAYS=14
 MAX_BOOKING_DAYS_AHEAD=60

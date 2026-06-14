@@ -65,7 +65,7 @@ def main():
         "email": "test@example.com",
         "password": "test12345",
         "name": "Jan Testowy",
-        "slug": "fryzjer-janek",
+        "slug": "serwis-jan",
     })
     assert s == 302, f"Oczekiwano 302, mamy {s}"
     token = parse_token(h)
@@ -89,7 +89,7 @@ def main():
 
     # 5. Public booking page
     print("5. Strona zgłaszania sprzętu...", end=" ")
-    s, h, body = req("GET", "/fryzjer-janek")
+    s, h, body = req("GET", "/serwis-jan")
     assert s == 200
     assert "Zgłoś sprzęt" in body
     print("OK")
@@ -102,7 +102,7 @@ def main():
 
     # 7. API slots
     print("7. API sloty (2099)...", end=" ")
-    s, h, body = req("GET", "/api/fryzjer-janek/slots?date=2099-01-01")
+    s, h, body = req("GET", "/api/serwis-jan/slots?date=2099-01-01")
     data = json.loads(body)
     assert "slots" in data
     print(f"OK ({len(data['slots'])} slotów)")
@@ -128,7 +128,7 @@ def main():
 
     # 10. Provider info
     print("10. API info...", end=" ")
-    s, h, body = req("GET", "/api/fryzjer-janek/info")
+    s, h, body = req("GET", "/api/serwis-jan/info")
     d = json.loads(body)
     assert d.get("name") == "Jan Testowy"
     print("OK")
