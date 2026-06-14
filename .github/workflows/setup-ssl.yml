@@ -20,8 +20,15 @@ jobs:
             echo "=== 1. Tworzenie katalogu certbot ==="
             mkdir -p /var/www/certbot
 
-            echo "=== 2. Pobranie certyfikatu SSL ==="
+            echo "=== 1b. Sprawdzenie DNS ==="
+            resolved_ip=$(dig +short "$DOMAIN" 2>/dev/null || host "$DOMAIN" 2>/dev/null | awk '/has address/ {print $4}')
+            my_ip=$(curl -s https://api.ipify.org 2>/dev/null)
+            echo "DNS dla $DOMAIN -> $resolved_ip"
+            echo "VPS IP -> $my_ip"
+
+            echo "=== 2. Pobranie certyfikatu SSL (HTTP-01) ==="
             certbot certonly --webroot -w /var/www/certbot \
+              --preferred-challenges http \
               --email krzysztof@zelman.pl --agree-tos --no-eff-email \
               -d "$DOMAIN" 2>&1 || echo "CERTBOT_ATTEMPT_COMPLETE"
 
